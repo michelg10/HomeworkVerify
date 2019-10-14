@@ -168,6 +168,17 @@ void savedata() {
     for (ll i=0;i<data.size();i++) out<<endl<<data[i].id<<endl<<data[i].score<<endl<<data[i].name<<endl<<data[i].date;
     out<<endl<<"END"<<endl<<"Hwf";
 }
+void nml(string &s) {
+    if (s!="") {
+        for (ll i=0;i<s.size()-1;i++) {
+            if (s[i]=='\\'&&s[i+1]==' ') {
+                s.erase(i,2);
+                s.insert(i," ");
+            }
+        }
+        if (s[s.size()-1]==' ') s.erase(s.size()-1);
+    }
+}
 int main() {
     //TODO:Add custom sound
     //TODO:Convert acsound and openhelper binaries
@@ -469,15 +480,7 @@ int main() {
             cout<<"Enter the path of the package."<<endl;
             string pkgpth;
             getline(cin,pkgpth);
-            if (pkgpth!="") {
-                for (ll i=0;i<pkgpth.size()-1;i++) {
-                    if (pkgpth[i]=='\\'&&pkgpth[i+1]==' ') {
-                        pkgpth.erase(i,2);
-                        pkgpth.insert(i," ");
-                    }
-                }
-                if (pkgpth[pkgpth.size()-1]==' ') pkgpth.erase(pkgpth.size()-1);
-            }
+            nml(pkgpth);
             ifstream pkgverf(pkgpth);
             if (pkgverf.good()) {
                 bool idfile=false;
@@ -489,7 +492,7 @@ int main() {
                         for (ll i=0;i<16;i++) {
                             newname+=randname[rand()%36];
                         }
-                        system(("cp "+safespace(pkgpth)+" "+safespace(db+"tmp/"+newname)).c_str());
+                        fcopy(pkgpth, db+"tmp/"+newname);
                         //UNZIP
                         system(("unzip -o -qq "+safespace(db+"tmp/"+newname)+" -d "+safespace(db+"tmp/"+newname+'u')).c_str());
                         //Read contents file
@@ -508,7 +511,7 @@ int main() {
                                 if (pkgptverf.good()) {
                                     string newnm="";
                                     for (ll i=0;i<16;i++) newnm+=randname[rand()%36];
-                                    system(("cp "+safespace(db+"tmp/"+newname+"u/"+pkgcontent[i])+" "+safespace(db+newnm)).c_str());
+                                    fcopy(db+"tmp/"+newname+"u/"+pkgcontent[i],db+newnm);
                                     string pkgpeeknm;
                                     //PEEK AT PACKAGE TO LOOK AT NAME
                                     string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+newnm)+" -out "+safespace(db+"tmp/"+newnm);
@@ -544,7 +547,7 @@ int main() {
                 for (ll i=0;i<16;i++) {
                     newname+=randname[rand()%36];
                 }
-                system(("cp "+safespace(pkgpth)+" "+safespace(db+newname)).c_str());
+                fcopy(pkgpth,db+newname);
                 string nm="Undefined";
                 data.push_back({newname,0,nm,date()});
                 //ID SCORE NAME DATE
@@ -724,7 +727,22 @@ int main() {
                                     else if (schoice[songchoice[i]]!=0) fc[schoice[songchoice[i]]-1]=1;
                                     else if (songchoice[i]=='2') {
                                         choosesounds=false;
-                                        cout<<"Input the path of the song..."<<endl;
+                                        cout<<"Alert! Song must be in WAV format."<<endl<<"Input the path of the song..."<<endl;
+                                        string newsoundpth;
+                                        getline(cin,newsoundpth);
+                                        nml(newsoundpth);
+                                        ifstream newsoundtest(newsoundpth);
+                                        if (newsoundtest.good()) {
+                                            newsoundtest.close();
+                                            cout<<"What is the name of the song?"<<endl;
+                                            string songn;
+                                            getline(cin,songn);
+                                            string songf="";
+                                            for (ll j=0;j<16;j++) songf+=randname[rand()%36];
+                                            fcopy(newsoundpth,db+songf+".wav");
+                                            audio.push_back({songf,songn});
+                                            cout<<"Song "<<songn<<" imported successfully."<<endl;
+                                        } else cout<<"Error reading song!"<<endl;
                                         //add new sounds
                                         break;
                                     } else if (songchoice[i]==3-soundcapped+'0') {
@@ -747,7 +765,12 @@ int main() {
                                         cout<<audio[todel[todel.size()-1]].sname<<"? This action is irreversible. Input CONFIRM to confirm."<<endl;
                                         string conf;
                                         getline(cin,conf);
-                                        if (conf=="CONFIRM") for (ll i=todel.size()-1;i>=0;i--) audio.erase(audio.begin()+todel[i]);
+                                        if (conf=="CONFIRM") {
+                                            for (ll i=todel.size()-1;i>=0;i--) audio.erase(audio.begin()+todel[i]);
+                                            for (ll i=0;i<selaud.size();i++) {
+                                                //ensure that all selaud is valid. also, copy this code to the top
+                                            }
+                                        }
                                     } else if (songchoice=="1") {
                                         cout<<"Sound disabled"<<endl;
                                         sound=false;
@@ -847,15 +870,7 @@ int main() {
                     cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
                     string cryf;
                     getline(cin,cryf);
-                    if (cryf!="") {
-                        for (ll i=0;i<cryf.size()-1;i++) {
-                            if (cryf[i]=='\\'&&cryf[i+1]==' ') {
-                                cryf.erase(i,2);
-                                cryf.insert(i," ");
-                            }
-                        }
-                        if (cryf[cryf.size()-1]==' ') cryf.erase(cryf.size()-1);
-                    }
+                    nml(cryf);
                     ifstream crytest(cryf);
                     if (crytest.good()) {
                         crytest.close();
@@ -1064,15 +1079,7 @@ int main() {
                     cout<<"Enter code path"<<endl;
                     string cdpth;
                     getline(cin,cdpth);
-                    if (cdpth!="") {
-                        for (ll i=0;i<cdpth.size()-1;i++) {
-                            if (cdpth[i]=='\\'&&cdpth[i+1]==' ') {
-                                cdpth.erase(i,2);
-                                cdpth.insert(i," ");
-                            }
-                        }
-                        if (cdpth[cdpth.size()-1]==' ') cdpth.erase(cdpth.size()-1);
-                    }
+                    nml(cdpth);
                     ifstream codeverf(cdpth);
                     if (codeverf.good()) {
                         codeverf.close();
@@ -1088,8 +1095,8 @@ int main() {
 //                        for (ll i=0;i<code.size();i++) {
 //                            out<<code[i]<<endl;
 //                        }
-                        system(("cp "+safespace(cdpth)+" "+safespace(db+"tmp/preppedcode.cpp")).c_str());
-                        system(("cp "+safespace(cdpth)+" "+safespace(db+target+".cpp")).c_str());
+                        fcopy(cdpth,db+"tmp/preppedcode.cpp");
+                        fcopy(cdpth,db+target+".cpp");
                         //Compile
                         system((safespace(db+"gpphelper")+" "+username).c_str());
                         bool compile=true;
@@ -1112,9 +1119,7 @@ int main() {
                                 rmtasks.push(i);
                             }
                             //Copy over exe
-                            for (ll i=1;i<=folders;i++) {
-                                system(("cp "+safespace(db+"tmp/exe")+" "+safespace(db+"tmp/"+to_string(i)+"/hwexe"+to_string(i))).c_str());
-                            }
+                            for (ll i=1;i<=folders;i++) system(("cp "+safespace(db+"tmp/exe")+" "+safespace(db+"tmp/"+to_string(i)+"/hwexe"+to_string(i))).c_str());
                             //Start the first batch
                             chrono::high_resolution_clock::time_point timer[folders];
                             for (ll i=1;i<=folders;i++) {
@@ -1298,9 +1303,9 @@ int main() {
                                 else if (cor==100) cout<<"Achievement \"Unstoppable\" complete."<<endl;
                                 else if (cor==1000) cout<<"Achievement \"Godlike!\" complete."<<endl;
                                 if (sound) {
-                                    if (audio.size()>0) {
+                                    if (selaud.size()>0) {
                                         ofstream songfname(db+"songbrd");
-                                        songfname<<audio[rand()%audio.size()].fname;
+                                        songfname<<audio[selaud[rand()%selaud.size()]].fname;
                                         system(("open "+safespace(db+"acsound")).c_str());
                                     }
                                 }
