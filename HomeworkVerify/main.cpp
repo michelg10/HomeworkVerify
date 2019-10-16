@@ -162,7 +162,7 @@ void savedata() {
     ofstream out(db+"contents.dwt");
     out<<"VERS"<<endl<<"1.3"<<endl<<"ACH"<<endl;
     for (ll i=0;i<easter.size();i++) out<<secret[i];
-    out<<endl<<"AUTOSAVE"<<endl<<autosave<<endl<<"SOUND"<<endl<<sound<<endl<<"CORRECT"<<endl<<cor<<endl<<"INCORRECT"<<endl<<incor<<endl<<"SORT"<<endl<<srtmode<<endl<<"MULTICORE"<<endl<<mltcore<<endl<<"RETENTION"<<endl<<rten<<endl<<"STARTSTRUCT"<<endl<<"Hwf"<<endl<<"FNAME"<<endl<<"SCORE"<<endl<<"NAME"<<endl<<"DATE"<<endl<<"ENDSTRUCT"<<endl<<"START"<<endl<<"Song"<<endl;
+    out<<endl<<"AUTOSAVE"<<endl<<autosave<<endl<<"SOUND"<<endl<<sound<<endl<<"CORRECT"<<endl<<cor<<endl<<"INCORRECT"<<endl<<incor<<endl<<"SORT"<<endl<<srtmode<<endl<<"MULTICORE"<<endl<<mltcore<<endl<<"RETENTION"<<endl<<rten<<endl<<"STARTSTRUCT"<<endl<<"Hwf"<<endl<<"FNAME"<<endl<<"SCORE"<<endl<<"NAME"<<endl<<"DATE"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"Song"<<endl<<"FNAME"<<endl<<"SNAME"<<endl<<"ENDSTRUCT"<<endl<<"START"<<endl<<"Song"<<endl;
     for (ll i=0;i<audio.size();i++) out<<audio[i].fname<<endl<<audio[i].sname<<endl;
     out<<"END"<<endl<<"Song"<<endl<<"START"<<endl<<"Hwf";
     for (ll i=0;i<data.size();i++) out<<endl<<data[i].id<<endl<<data[i].score<<endl<<data[i].name<<endl<<data[i].date;
@@ -429,6 +429,10 @@ int main() {
         cout<<"Autosave has been disabled."<<endl;
         autosave=0;
         asdisabled=true;
+    }
+    for (ll i=selaud.size()-1;i>=0;i--) {
+        if (selaud[i]>=audio.size()) selaud.erase(selaud.begin()+i);
+        i--;
     }
     while (true) {
         string target;
@@ -767,8 +771,10 @@ int main() {
                                         getline(cin,conf);
                                         if (conf=="CONFIRM") {
                                             for (ll i=todel.size()-1;i>=0;i--) audio.erase(audio.begin()+todel[i]);
-                                            for (ll i=0;i<selaud.size();i++) {
-                                                //ensure that all selaud is valid. also, copy this code to the top
+                                            sort(selaud.begin(),selaud.end());
+                                            for (ll i=selaud.size();i>=0;i++) {
+                                                if (selaud[i]>=audio.size()) selaud.erase(selaud.begin()+i);
+                                                i--;
                                             }
                                         }
                                     } else if (songchoice=="1") {
