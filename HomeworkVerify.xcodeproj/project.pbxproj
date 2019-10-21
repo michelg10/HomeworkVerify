@@ -8,11 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		F0447B78224A5D1900B57D98 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0447B77224A5D1900B57D98 /* main.cpp */; };
+		F077F316235D62E80054FC47 /* handclap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F077F314235D62E80054FC47 /* handclap.cpp */; };
+		F077F319235D63210054FC47 /* acsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F077F318235D63210054FC47 /* acsound.cpp */; };
+		F077F31C235D64E90054FC47 /* highonlife.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F077F31A235D64E90054FC47 /* highonlife.cpp */; };
+		F077F31F235DA4B60054FC47 /* convtool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F077F31D235DA4B60054FC47 /* convtool.cpp */; };
 		F0A7CC9023117543007AB3DE /* cores.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CC8E23117543007AB3DE /* cores.cpp */; };
 		F0A7CC9323117628007AB3DE /* gpphelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CC9123117628007AB3DE /* gpphelper.cpp */; };
 		F0A7CC9623117671007AB3DE /* openhelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CC9523117671007AB3DE /* openhelper.cpp */; };
-		F0A7CCE023129183007AB3DE /* ac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CCDF23129183007AB3DE /* ac.cpp */; };
-		F0A7CCE323129248007AB3DE /* acsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CCE223129248007AB3DE /* acsound.cpp */; };
 		F0A7CCE62312935B007AB3DE /* soundkill.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CCE52312935B007AB3DE /* soundkill.cpp */; };
 		F0DCF34E2339AAF400F30416 /* irrlib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0DCF34D2339AAF400F30416 /* irrlib.cpp */; };
 		F0DCF3642339CCA500F30416 /* soundsetup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0DCF3622339CCA400F30416 /* soundsetup.cpp */; };
@@ -33,6 +35,14 @@
 /* Begin PBXFileReference section */
 		F0447B74224A5D1900B57D98 /* HomeworkVerify */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HomeworkVerify; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0447B77224A5D1900B57D98 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		F077F314235D62E80054FC47 /* handclap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = handclap.cpp; sourceTree = "<group>"; };
+		F077F315235D62E80054FC47 /* handclap.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = handclap.hpp; sourceTree = "<group>"; };
+		F077F317235D63210054FC47 /* acsound.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = acsound.hpp; sourceTree = "<group>"; };
+		F077F318235D63210054FC47 /* acsound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = acsound.cpp; sourceTree = "<group>"; };
+		F077F31A235D64E90054FC47 /* highonlife.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = highonlife.cpp; sourceTree = "<group>"; };
+		F077F31B235D64E90054FC47 /* highonlife.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = highonlife.hpp; sourceTree = "<group>"; };
+		F077F31D235DA4B60054FC47 /* convtool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = convtool.cpp; path = ../../../../../../convtool.cpp; sourceTree = "<group>"; };
+		F077F31E235DA4B60054FC47 /* convtool.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = convtool.hpp; path = ../../../../../../convtool.hpp; sourceTree = "<group>"; };
 		F0A7CC8E23117543007AB3DE /* cores.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cores.cpp; sourceTree = "<group>"; };
 		F0A7CC8F23117543007AB3DE /* cores.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = cores.hpp; sourceTree = "<group>"; };
 		F0A7CC9123117628007AB3DE /* gpphelper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = gpphelper.cpp; sourceTree = "<group>"; };
@@ -40,10 +50,6 @@
 		F0A7CC9423117671007AB3DE /* openhelper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = openhelper.hpp; sourceTree = "<group>"; };
 		F0A7CC9523117671007AB3DE /* openhelper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = openhelper.cpp; sourceTree = "<group>"; };
 		F0A7CCB123117E59007AB3DE /* libirrklang.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libirrklang.dylib; sourceTree = "<group>"; };
-		F0A7CCDE23129183007AB3DE /* ac.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ac.hpp; sourceTree = "<group>"; };
-		F0A7CCDF23129183007AB3DE /* ac.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ac.cpp; sourceTree = "<group>"; };
-		F0A7CCE123129248007AB3DE /* acsound.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = acsound.hpp; sourceTree = "<group>"; };
-		F0A7CCE223129248007AB3DE /* acsound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = acsound.cpp; sourceTree = "<group>"; };
 		F0A7CCE42312935B007AB3DE /* soundkill.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = soundkill.hpp; sourceTree = "<group>"; };
 		F0A7CCE52312935B007AB3DE /* soundkill.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = soundkill.cpp; sourceTree = "<group>"; };
 		F0DCF34C2339AAF400F30416 /* irrlib.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = irrlib.hpp; sourceTree = "<group>"; };
@@ -92,16 +98,20 @@
 		F080189A224EFB4900F2B74D /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				F077F318235D63210054FC47 /* acsound.cpp */,
+				F077F317235D63210054FC47 /* acsound.hpp */,
+				F077F31D235DA4B60054FC47 /* convtool.cpp */,
+				F077F31E235DA4B60054FC47 /* convtool.hpp */,
+				F077F314235D62E80054FC47 /* handclap.cpp */,
+				F077F315235D62E80054FC47 /* handclap.hpp */,
+				F077F31A235D64E90054FC47 /* highonlife.cpp */,
+				F077F31B235D64E90054FC47 /* highonlife.hpp */,
 				F0A7CC8E23117543007AB3DE /* cores.cpp */,
 				F0A7CC8F23117543007AB3DE /* cores.hpp */,
 				F0A7CC9123117628007AB3DE /* gpphelper.cpp */,
 				F0A7CC9223117628007AB3DE /* gpphelper.hpp */,
 				F0A7CC9523117671007AB3DE /* openhelper.cpp */,
 				F0A7CC9423117671007AB3DE /* openhelper.hpp */,
-				F0A7CCDF23129183007AB3DE /* ac.cpp */,
-				F0A7CCDE23129183007AB3DE /* ac.hpp */,
-				F0A7CCE223129248007AB3DE /* acsound.cpp */,
-				F0A7CCE123129248007AB3DE /* acsound.hpp */,
 				F0A7CCE52312935B007AB3DE /* soundkill.cpp */,
 				F0A7CCE42312935B007AB3DE /* soundkill.hpp */,
 				F0DCF34D2339AAF400F30416 /* irrlib.cpp */,
@@ -176,14 +186,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F077F31C235D64E90054FC47 /* highonlife.cpp in Sources */,
+				F077F319235D63210054FC47 /* acsound.cpp in Sources */,
 				F0A7CC9023117543007AB3DE /* cores.cpp in Sources */,
 				F0A7CC9623117671007AB3DE /* openhelper.cpp in Sources */,
 				F0A7CCE62312935B007AB3DE /* soundkill.cpp in Sources */,
+				F077F316235D62E80054FC47 /* handclap.cpp in Sources */,
 				F0447B78224A5D1900B57D98 /* main.cpp in Sources */,
 				F0A7CC9323117628007AB3DE /* gpphelper.cpp in Sources */,
-				F0A7CCE023129183007AB3DE /* ac.cpp in Sources */,
-				F0A7CCE323129248007AB3DE /* acsound.cpp in Sources */,
 				F0DCF3642339CCA500F30416 /* soundsetup.cpp in Sources */,
+				F077F31F235DA4B60054FC47 /* convtool.cpp in Sources */,
 				F0DCF34E2339AAF400F30416 /* irrlib.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

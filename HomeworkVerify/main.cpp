@@ -11,11 +11,13 @@
 #include "openhelper.hpp"
 #include "cores.hpp"
 #include "gpphelper.hpp"
-#include "ac.hpp"
+#include "handclap.hpp"
+#include "highonlife.hpp"
 #include "acsound.hpp"
 #include "soundkill.hpp"
 #include "irrlib.hpp"
 #include "soundsetup.hpp"
+#include "convtool.hpp"
 using namespace std;
 typedef long long ll;
 typedef long double ld;
@@ -55,45 +57,63 @@ void install(bool comple) {
         system(("mkdir "+safespace(db)).c_str());
         system(("mkdir "+safespace(db+"tmp/")).c_str());
     }
-    //Install cores(39824),gpphelper(48608),openhelper(129584)y,ac(7271540),acsound(36400),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720)
+    //Install cores(39824),gpphelper(48608),openhelper(129632)y,handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
     const unsigned char* tmp=cores();
     ofstream installer(db+"cores",ios::binary);
     for (ll i=0;i<39824;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"cores")).c_str());
+    
     installer.open(db+"gpphelper",ios::binary);
     tmp = gpphelper();
     for (ll i=0;i<48608;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"gpphelper")).c_str());
+    
     installer.open(db+"openhelper",ios::binary);
     tmp = openhelper();
-    for (ll i=0;i<129584;i++) installer<<tmp[i];
+    for (ll i=0;i<129632;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"openhelper")).c_str());
-    installer.open(db+"ac.wav",ios::binary);
-    tmp=ac();
-    for (ll i=0;i<7271540;i++) installer<<tmp[i];
+    
+    installer.open(db+"U2PQX4CHY3SOJ31E.wav",ios::binary);
+    tmp=handclap();
+    for (ll i=0;i<1818048;i++) installer<<tmp[i];
     installer.close();
+    
+    installer.open(db+"D63SR3HEXSB6JX1N.wav",ios::binary);
+    tmp=highonlife();
+    for (ll i=0;i<1160862;i++) installer<<tmp[i];
+    installer.close();
+    
     installer.open(db+"acsound",ios::binary);
     tmp = acsound();
-    for (ll i=0;i<36400;i++) installer<<tmp[i];
+    for (ll i=0;i<94848;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"acsound")).c_str());
+    
     installer.open(db+"soundkill",ios::binary);
     tmp = soundkill();
     for (ll i=0;i<31840;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"soundkill")).c_str());
+    
     installer.open(db+"soundsetup",ios::binary);
     tmp=soundsetup();
     for (ll i=0;i<114720;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"soundsetup")).c_str());
+    
     installer.open(db+"libirrklang.dylib",ios::binary);
     tmp=irrlib();
     for (ll i=0;i<1975552;i++) installer<<tmp[i];
     installer.close();
+    
+    installer.open(db+"convtool",ios::binary);
+    tmp=convtool();
+    for (ll i=0;i<109344;i++) installer<<tmp[i];
+    installer.close();
+    system(("chmod 755 "+safespace(db+"convtool")).c_str());
     cout<<"done"<<endl;
 }
 string date() {
@@ -121,7 +141,7 @@ string key = "FB384BE6E7009275";
 string iv = "755CA3572C3FAC78";
 string salt = "8C55A67258E39056";
 string cmdenc = "openssl enc -aes-256-cbc -K "+key+" -iv "+iv+" -S "+salt;
-ll srtmode,mltcore,rten,compcore,cor=0,incor=0;
+ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver;
 bool cmp(hw const &a, hw const &b) {
     if (srtmode==1) return a.name<b.name;
     else if (srtmode==2) return a.name>b.name;
@@ -162,11 +182,13 @@ void savedata() {
     ofstream out(db+"contents.dwt");
     out<<"VERS"<<endl<<"1.3"<<endl<<"ACH"<<endl;
     for (ll i=0;i<easter.size();i++) out<<secret[i];
-    out<<endl<<"AUTOSAVE"<<endl<<autosave<<endl<<"SOUND"<<endl<<sound<<endl<<"CORRECT"<<endl<<cor<<endl<<"INCORRECT"<<endl<<incor<<endl<<"SORT"<<endl<<srtmode<<endl<<"MULTICORE"<<endl<<mltcore<<endl<<"RETENTION"<<endl<<rten<<endl<<"STARTSTRUCT"<<endl<<"Hwf"<<endl<<"FNAME"<<endl<<"SCORE"<<endl<<"NAME"<<endl<<"DATE"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"Song"<<endl<<"FNAME"<<endl<<"SNAME"<<endl<<"ENDSTRUCT"<<endl<<"START"<<endl<<"Song"<<endl;
+    out<<endl<<"AUTOSAVE"<<endl<<autosave<<endl<<"SOUND"<<endl<<sound<<endl<<"CORRECT"<<endl<<cor<<endl<<"INCORRECT"<<endl<<incor<<endl<<"SORT"<<endl<<srtmode<<endl<<"MULTICORE"<<endl<<mltcore<<endl<<"RETENTION"<<endl<<rten<<endl<<"HELPERVER"<<endl<<helperver<<endl<<"STARTSTRUCT"<<endl<<"Hwf"<<endl<<"FNAME"<<endl<<"SCORE"<<endl<<"NAME"<<endl<<"DATE"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"Song"<<endl<<"FNAME"<<endl<<"SNAME"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"selaud"<<endl<<"AUDID"<<endl<<"ENDSTRUCT"<<endl<<"START"<<endl<<"Song"<<endl;
     for (ll i=0;i<audio.size();i++) out<<audio[i].fname<<endl<<audio[i].sname<<endl;
     out<<"END"<<endl<<"Song"<<endl<<"START"<<endl<<"Hwf";
     for (ll i=0;i<data.size();i++) out<<endl<<data[i].id<<endl<<data[i].score<<endl<<data[i].name<<endl<<data[i].date;
-    out<<endl<<"END"<<endl<<"Hwf";
+    out<<endl<<"END"<<endl<<"Hwf"<<endl<<"START"<<endl<<"selaud";
+    for (ll i=0;i<selaud.size();i++) out<<endl<<selaud[i];
+    out<<endl<<"END"<<endl<<"selaud";
 }
 void nml(string &s) {
     if (s!="") {
@@ -180,8 +202,6 @@ void nml(string &s) {
     }
 }
 int main() {
-    //TODO:Add custom sound
-    //TODO:Convert acsound and openhelper binaries
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -189,6 +209,8 @@ int main() {
     intcont["MULTICORE"]=&mltcore;
     intcont["RETENTION"]=&rten;
     intcont["AUTOSAVE"]=&autosave;
+    intcont["HELPERVER"]=&helperver;
+    ll const helpertar=1;
     //Defaults
     rten=6;
     mltcore=1;
@@ -198,16 +220,6 @@ int main() {
     autosave=1;
     audio.push_back({"U2PQX4CHY3SOJ31E","Handclap"});
     audio.push_back({"D63SR3HEXSB6JX1N","High on Life"});
-//    audio.push_back({"fds","Another song"});
-//    audio.push_back({"fds","Another song2"});
-//    audio.push_back({"fds","Another song3"});
-//    audio.push_back({"fds","Another song4"});
-//    audio.push_back({"fds","Another song5"});
-//    audio.push_back({"fds","Another song6"});
-//    audio.push_back({"fds","Another song7"});
-//    audio.push_back({"fds","Another song8"});
-//    audio.push_back({"fds","Another song9"});
-//    audio.push_back({"fds","Another song10"});
     selaud.push_back(0);
     selaud.push_back(1);
     if (true) /*Easter eggs!*/ {
@@ -280,24 +292,6 @@ int main() {
         mancreate.close();
     }
     dbtest.close();
-    ifstream helperv(db+"helper.ver");
-    if (helperv.good()) {
-        string curv="";
-        getline(helperv,curv);
-        helperv.close();
-        if (curv!=hv) {
-            install(0);
-        }
-    } else {
-        helperv.close();
-        if (!freshins) {
-            install(0);
-        }
-        ofstream hvout(db+"helper.ver");
-        hvout<<hv;
-        hvout.close();
-    }
-    
     //1.3 ONLY
     /* **************************************************** */
     ifstream convtest(db+"contents.man");
@@ -308,7 +302,10 @@ int main() {
             convtest.close();
         } else {
             convtest.close();
-            cout<<"Conversion needed!"<<endl;
+            cout<<"v1.3 of Homework introduces a new storage format, DWT. DWT allows for seamless compatibility between versions of Homework. We'll now convert your old MAN file to DWT!"<<endl;
+            system(safespace(db+"convtool").c_str());
+            cout<<"Please reopen Homework."<<endl;
+            return 0;
         }
         
     } else convtest.close();
@@ -343,22 +340,50 @@ int main() {
                 if (startgood) {
                     ll cur=0;
                     ll ttl = structref[stname].size();
-                    if (stname=="Hwf") {
-                        hw curwt=(hw){"",0,"",""};
-                        //ID,NAME,SCORE,DATE
-                        while (contentsf[++i]!="END") {
-                            if (cur==ttl) {
-                                data.push_back(curwt);
-                                cur=0;
+                    if (ttl) {
+                        if (stname=="Hwf") {
+                            hw curwt=(hw){"",0,"",""};
+                            //ID,NAME,SCORE,DATE
+                            while (contentsf[++i]!="END") {
+                                if (cur==ttl) {
+                                    data.push_back(curwt);
+                                    cur=0;
+                                }
+                                if (structref[stname][cur]=="FNAME") curwt.id=contentsf[i];
+                                else if (structref[stname][cur]=="SCORE") curwt.score=atoll(contentsf[i].c_str());
+                                else if (structref[stname][cur]=="NAME") curwt.name=contentsf[i];
+                                else if (structref[stname][cur]=="DATE") curwt.date=contentsf[i];
+                                cur++;
                             }
-                            if (structref[stname][cur]=="FNAME") curwt.id=contentsf[i];
-                            else if (structref[stname][cur]=="SCORE") curwt.score=atoll(contentsf[i].c_str());
-                            else if (structref[stname][cur]=="NAME") curwt.name=contentsf[i];
-                            else if (structref[stname][cur]=="DATE") curwt.date=contentsf[i];
-                            cur++;
-                        }
-                        if (cur==ttl) data.push_back(curwt);
-                    } else while (contentsf[++i]!="END");
+                            if (cur==ttl) data.push_back(curwt);
+                        } else if (stname=="Song") {
+                            audio.clear();
+                            soundlog curwt=(soundlog){"",""};
+                            //fname, sname
+                            while (contentsf[++i]!="END") {
+                                if (cur==ttl) {
+                                    audio.push_back(curwt);
+                                    cur=0;
+                                }
+                                if (structref[stname][cur]=="FNAME") curwt.fname=contentsf[i];
+                                else if (structref[stname][cur]=="SNAME") curwt.sname=contentsf[i];
+                                cur++;
+                            }
+                            if (cur==ttl) audio.push_back(curwt);
+                        } else if (stname=="selaud") {
+                            selaud.clear();
+                            ll curwt;
+                            while (contentsf[++i]!="END") {
+                                if (cur==ttl) {
+                                    selaud.push_back(curwt);
+                                    cur=0;
+                                }
+                                if (structref[stname][cur]=="AUDID") curwt=atoll(contentsf[i].c_str());
+                                cur++;
+                            }
+                            if (cur==ttl) selaud.push_back(curwt);
+                        } else while (contentsf[++i]!="END");
+                    }
                 } else impissue=true;
             } else if (finkey=="STARTSTRUCT") {
                 bool structgood=false;
@@ -383,6 +408,10 @@ int main() {
     ofstream out(db+"db.txt");
     out<<db;
     out.close();
+    if (helperver!=helpertar) {
+        install(0);
+        helperver=helpertar;
+    }
     system((safespace(db+"cores")).c_str());
     in.open(db+"cores.txt");
     if (in.good()) {
@@ -395,13 +424,6 @@ int main() {
         ifstream bundltest(db+data[i].id);
         if (!bundltest.good()) {
             data.erase(data.begin()+i);
-            i--;
-        }
-    }
-    for (ll i=0;i<selaud.size();i++) {
-        if (selaud[i]>=audio.size())  {
-            impissue=true;
-            selaud.erase(selaud.begin()+i);
             i--;
         }
     }
@@ -620,7 +642,7 @@ int main() {
                 else cout<<"Error"<<endl;
                 cout<<"[4]Sound:";
                 if (sound) {
-                    if (selaud.size()==0) cout<<"Disabled"<<endl;
+                    if (selaud.size()==0) cout<<"No song selected"<<endl;
                     else if (audio.size()==selaud.size()) cout<<"All"<<endl;
                     else {
                         cout<<audio[selaud[0]].sname;
@@ -695,103 +717,108 @@ int main() {
                         }
                     }
                     if (dirlib&&soundlib) {
-                        if (sound) {
-                            while (true) {
-                                cout<<"Current selectiion:";
-                                if (selaud.size()==audio.size()) cout<<"All";
-                                else {
-                                    cout<<audio[selaud[0]].sname;
-                                    for (ll i=1;i<selaud.size();i++) {
-                                        cout<<", "<<audio[selaud[i]].sname;
-                                    }
-                                }
-                                bool soundcapped=true;
-                                if (audio.size()<35) soundcapped=false;
-                                cout<<endl<<"[1]Disable sound"<<endl;
-                                if (!soundcapped) cout<<"[2]Add new sounds"<<endl;
-                                cout<<"["<<3-soundcapped<<"]Delete sounds"<<endl<<"--------"<<endl<<"["<<4-soundcapped<<"]Select all"<<endl;
-                                map<char, ll>schoice;
-                                for (ll i=0;i<audio.size();i++) {
-                                    if (i+5-soundcapped<=9) {
-                                        cout<<"["<<i+5-soundcapped<<"]"<<audio[i].sname<<endl;
-                                        schoice[i+5-soundcapped+'0']=i+1;
+                        while (true) {
+                            if (sound) {
+                                while (true) {
+                                    cout<<"Current selectiion:";
+                                    if (selaud.size()==audio.size()) cout<<"All";
+                                    else if (selaud.size()==0) {
+                                        cout<<"None";
                                     } else {
-                                        schoice['A'+i-5-soundcapped]=i+1;
-                                        cout<<"["<<(char)('A'+i-5-soundcapped)<<"]"<<audio[i].sname<<endl;
-                                    }
-                                }
-                                cout<<"Select songs to play after a correct submission..."<<endl;
-                                string songchoice;
-                                getline(cin,songchoice);
-                                bool fc[audio.size()];
-                                bool choosesounds=true;
-                                for (ll i=0;i<audio.size();i++) fc[i]=0;
-                                for (ll i=0;i<songchoice.length();i++) {
-                                    if (songchoice[i]==4-soundcapped+'0') for (ll j=0;j<audio.size();j++) fc[j]=1;
-                                    else if (schoice[songchoice[i]]!=0) fc[schoice[songchoice[i]]-1]=1;
-                                    else if (songchoice[i]=='2') {
-                                        choosesounds=false;
-                                        cout<<"Alert! Song must be in WAV format."<<endl<<"Input the path of the song..."<<endl;
-                                        string newsoundpth;
-                                        getline(cin,newsoundpth);
-                                        nml(newsoundpth);
-                                        ifstream newsoundtest(newsoundpth);
-                                        if (newsoundtest.good()) {
-                                            newsoundtest.close();
-                                            cout<<"What is the name of the song?"<<endl;
-                                            string songn;
-                                            getline(cin,songn);
-                                            string songf="";
-                                            for (ll j=0;j<16;j++) songf+=randname[rand()%36];
-                                            fcopy(newsoundpth,db+songf+".wav");
-                                            audio.push_back({songf,songn});
-                                            cout<<"Song "<<songn<<" imported successfully."<<endl;
-                                        } else cout<<"Error reading song!"<<endl;
-                                        //add new sounds
-                                        break;
-                                    } else if (songchoice[i]==3-soundcapped+'0') {
-                                        choosesounds=false;
-                                        for (ll i=0;i<audio.size();i++) {
-                                            cout<<"[";
-                                            i<9?cout<<i+1:cout<<(char)('A'+i-9);
-                                            cout<<"]"<<audio[i].sname<<endl;
+                                        cout<<audio[selaud[0]].sname;
+                                        for (ll i=1;i<selaud.size();i++) {
+                                            cout<<", "<<audio[selaud[i]].sname;
                                         }
-                                        cout<<"What song do you want to delete?"<<endl;
-                                        string delschoice;
-                                        getline(cin,delschoice);
-                                        set<ll>delchoice;
-                                        for (ll i=0;i<delschoice.length();i++) delchoice.insert(delschoice[i]>='A'?delschoice[i]-'A'+10-1:delschoice[i]-'0'-1);
-                                        vector<ll>todel;
-                                        for (set<ll>::iterator i=delchoice.begin();i!=delchoice.end();i++) if (*i<audio.size()) todel.push_back(*i); else break;
-                                        if (todel.size()) cout<<"Are you sure you want to delete ";
-                                        for (ll i=0;i<todel.size()-1;i++) cout<<audio[todel[i]].sname<<", ";
-                                        if (todel.size()>1) cout<<"and ";
-                                        cout<<audio[todel[todel.size()-1]].sname<<"? This action is irreversible. Input CONFIRM to confirm."<<endl;
-                                        string conf;
-                                        getline(cin,conf);
-                                        if (conf=="CONFIRM") {
-                                            for (ll i=todel.size()-1;i>=0;i--) audio.erase(audio.begin()+todel[i]);
-                                            sort(selaud.begin(),selaud.end());
-                                            for (ll i=selaud.size();i>=0;i++) {
-                                                if (selaud[i]>=audio.size()) selaud.erase(selaud.begin()+i);
-                                                i--;
+                                    }
+                                    bool soundcapped=true;
+                                    if (audio.size()<35) soundcapped=false;
+                                    cout<<endl<<"[1]Disable sound"<<endl;
+                                    if (!soundcapped) cout<<"[2]Add new sounds"<<endl;
+                                    cout<<"["<<3-soundcapped<<"]Delete sounds"<<endl<<"--------"<<endl<<"["<<4-soundcapped<<"]Select all"<<endl;
+                                    map<char, ll>schoice;
+                                    for (ll i=0;i<audio.size();i++) {
+                                        if (i+5-soundcapped<=9) {
+                                            cout<<"["<<i+5-soundcapped<<"]"<<audio[i].sname<<endl;
+                                            schoice[i+5-soundcapped+'0']=i+1;
+                                        } else {
+                                            schoice['A'+i-5-soundcapped]=i+1;
+                                            cout<<"["<<(char)('A'+i-5-soundcapped)<<"]"<<audio[i].sname<<endl;
+                                        }
+                                    }
+                                    cout<<"Select songs to play after a correct submission..."<<endl;
+                                    string songchoice;
+                                    getline(cin,songchoice);
+                                    bool fc[audio.size()];
+                                    bool choosesounds=true;
+                                    for (ll i=0;i<audio.size();i++) fc[i]=0;
+                                    for (ll i=0;i<songchoice.length();i++) {
+                                        if (songchoice[i]==4-soundcapped+'0') for (ll j=0;j<audio.size();j++) fc[j]=1;
+                                        else if (schoice[songchoice[i]]!=0) fc[schoice[songchoice[i]]-1]=1;
+                                        else if (songchoice[i]=='2') {
+                                            choosesounds=false;
+                                            cout<<"Alert! Song must be in WAV format."<<endl<<"Input the path of the song..."<<endl;
+                                            string newsoundpth;
+                                            getline(cin,newsoundpth);
+                                            nml(newsoundpth);
+                                            ifstream newsoundtest(newsoundpth);
+                                            if (newsoundtest.good()) {
+                                                newsoundtest.close();
+                                                cout<<"What is the name of the song?"<<endl;
+                                                string songn;
+                                                getline(cin,songn);
+                                                string songf="";
+                                                for (ll j=0;j<16;j++) songf+=randname[rand()%36];
+                                                fcopy(newsoundpth,db+songf+".wav");
+                                                audio.push_back({songf,songn});
+                                                cout<<"Song "<<songn<<" imported successfully."<<endl;
+                                            } else cout<<"Error reading song!"<<endl;
+                                            //add new sounds
+                                            break;
+                                        } else if (songchoice[i]==3-soundcapped+'0') {
+                                            choosesounds=false;
+                                            for (ll i=0;i<audio.size();i++) {
+                                                cout<<"[";
+                                                i<9?cout<<i+1:cout<<(char)('A'+i-9);
+                                                cout<<"]"<<audio[i].sname<<endl;
                                             }
+                                            cout<<"What song do you want to delete?"<<endl;
+                                            string delschoice;
+                                            getline(cin,delschoice);
+                                            set<ll>delchoice;
+                                            for (ll i=0;i<delschoice.length();i++) delchoice.insert(delschoice[i]>='A'?delschoice[i]-'A'+10-1:delschoice[i]-'0'-1);
+                                            vector<ll>todel;
+                                            for (set<ll>::iterator i=delchoice.begin();i!=delchoice.end();i++) if (*i<audio.size()) todel.push_back(*i); else break;
+                                            if (todel.size()) cout<<"Are you sure you want to delete ";
+                                            for (ll i=0;i<todel.size()-1;i++) cout<<audio[todel[i]].sname<<", ";
+                                            if (todel.size()>1) cout<<"and ";
+                                            cout<<audio[todel[todel.size()-1]].sname<<"? This action is irreversible. Input CONFIRM to confirm."<<endl;
+                                            string conf;
+                                            getline(cin,conf);
+                                            if (conf=="CONFIRM") {
+                                                for (ll i=todel.size()-1;i>=0;i--) audio.erase(audio.begin()+todel[i]);
+                                                sort(selaud.begin(),selaud.end());
+                                                for (ll i=selaud.size();i>=0;i++) {
+                                                    if (selaud[i]>=audio.size()) selaud.erase(selaud.begin()+i);
+                                                    i--;
+                                                }
+                                            }
+                                        } else if (songchoice=="1") {
+                                            cout<<"Sound disabled"<<endl;
+                                            sound=false;
+                                            break;
                                         }
-                                    } else if (songchoice=="1") {
-                                        cout<<"Sound disabled"<<endl;
-                                        sound=false;
+                                    }
+                                    if (choosesounds) {
+                                        selaud.clear();
+                                        for (ll i=0;i<audio.size();i++) if (fc[i]) selaud.push_back(i);
                                         break;
                                     }
                                 }
-                                if (choosesounds) {
-                                    selaud.clear();
-                                    for (ll i=0;i<audio.size();i++) if (fc[i]) selaud.push_back(i);
-                                    break;
-                                }
+                                break;
+                            } else {
+                                cout<<"Sound enabled"<<endl;
+                                sound=true;
                             }
-                        } else {
-                            cout<<"Sound enabled"<<endl;
-                            sound=true;
                         }
                     } else {
                         cout<<"Using sound requires the installation of external libraries. This will require an administrator password. Enter y to proceed."<<endl;
