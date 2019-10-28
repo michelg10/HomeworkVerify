@@ -465,7 +465,7 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to LM7's Homework(v1.3). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        cout<<"Welcome to LM7's Homework(v1.3.3). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         sort(data.begin(),data.end(),cmp);
         bool incompl=false;
         for (ll i=0;i<data.size();i++) {
@@ -897,7 +897,7 @@ int main() {
             }
             if (!hitach) {
                 if (vtmp=="changelog") {
-                    cout<<"What's changed in v1.3:"<<endl<<"Added new file format"<<endl;
+                    cout<<"What's changed in v1.3.3:"<<endl<<"Bug fixes and improvements"<<endl;
                 } else if (vtmp=="kill") return 0;
                 else if (vtmp=="crypt") {
                     cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
@@ -1291,7 +1291,7 @@ int main() {
                             cout<<"Test results:"<<endl;
                             for (ll i=1;i<=dtpt;i++) {
                                 if (timeres[i-1]>1000) {
-                                    cout<<"#"<<i<<":TE"<<endl;
+                                    cout<<"#"<<i<<"-TE"<<endl;
                                 } else {
                                     cout<<"#"<<i;
                                     //Evaluation:Remove last blank line
@@ -1310,14 +1310,21 @@ int main() {
                                     }
                                     if (outdata[i-1][outdata[i-1].size()-1]=="") outdata[i-1].erase(outdata[i-1].begin()+outdata[i-1].size()-1);
                                     for (ll j=0;j<outdata[i-1].size();j++) {
-                                        if (outdata[i-1][j][outcomp[j].size()-1]==' ') {
+                                        if (outdata[i-1][j][outdata[i-1][j].size()-1]==' ') {
                                             outdata[i-1][j].erase(outdata[i-1][j].begin()+outdata[i-1][j].size()-1);
                                         }
                                     }
                                     bool ac = true;
                                     if (outdata[i-1].size()==outcomp.size()) {
                                         for (ll j=0;j<outdata[i-1].size();j++) {
-                                            if (outdata[i-1][j]!=outcomp[j]) ac=false;
+                                            if (outdata[i-1][j].size()==outcomp[j].size()) {
+                                                for (ll k=0;k<outdata[i-1][j].size();k++) {
+                                                    if (outdata[i-1][j][k]!=outcomp[j][k]) {
+                                                        ac=false;
+                                                        break;
+                                                    }
+                                                }
+                                            } else ac=false;
                                         }
                                     } else ac = false;
                                     if (ac) {cout<<"-AC:";correct++;}
