@@ -49,14 +49,13 @@ bool readf(vector<string>&s,string path) {
     return 1;
 }
 string username = getlogin(),db;
-string hv="1";
 void install(bool comple) {
     cout<<"Installing neccessary components... ";
     if (comple) {
         system(("mkdir "+safespace(db)).c_str());
         system(("mkdir "+safespace(db+"tmp/")).c_str());
     }
-    //Install cores(39824),gpphelper(48608),openhelper(129632)y,handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //Install cores(39824),gpphelper(48608),openhelper(135472)y,handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
     const unsigned char* tmp=cores();
     ofstream installer(db+"cores",ios::binary);
     for (ll i=0;i<39824;i++) installer<<tmp[i];
@@ -71,7 +70,7 @@ void install(bool comple) {
     
     installer.open(db+"openhelper",ios::binary);
     tmp = openhelper();
-    for (ll i=0;i<129632;i++) installer<<tmp[i];
+    for (ll i=0;i<135472;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"openhelper")).c_str());
     
@@ -210,7 +209,7 @@ int main() {
     intcont["RETENTION"]=&rten;
     intcont["AUTOSAVE"]=&autosave;
     intcont["HELPERVER"]=&helperver;
-    ll const helpertar=1;
+    ll const helpertar=2;
     //Defaults
     rten=6;
     mltcore=1;
@@ -466,7 +465,7 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to LM7's Homework(v1.3.4). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        cout<<"Welcome to LM7's Homework(v1.4). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         sort(data.begin(),data.end(),cmp);
         bool incompl=false;
         for (ll i=0;i<data.size();i++) {
@@ -689,7 +688,7 @@ int main() {
                     if (autosave) savedata();
                 } else if (setans=="3") {
                     cout<<"About multicore:Your processor may be capable of running multiple tasks at once. Using multicore settings will evaluate homework using more cores. "<<endl<<"Input the amount of cores."<<endl;
-                    if (compcore==0) cout<<"Suggestion is unavailble.."<<endl;
+                    if (compcore==0) cout<<"Suggestion is unavailble."<<endl;
                     else if (compcore<=3) cout<<"Using one core is recommended."<<endl;
                     else cout<<"Using "<<compcore-2<<" cores is recommended."<<endl;
                     string settmp;
@@ -898,7 +897,7 @@ int main() {
             }
             if (!hitach) {
                 if (vtmp=="changelog") {
-                    cout<<"What's changed in v1.3.4:"<<endl<<"Bug fixes and improvements"<<endl;
+                    cout<<"What's changed in v1.4:"<<endl<<"New engine"<<endl;
                 } else if (vtmp=="kill") return 0;
                 else if (vtmp=="crypt") {
                     cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
@@ -1117,21 +1116,9 @@ int main() {
                     ifstream codeverf(cdpth);
                     if (codeverf.good()) {
                         codeverf.close();
-                        //Prepare code
-//                        vector<string>code;
-//                        while (!codeverf.eof()) {
-//                            string codeintmp;
-//                            getline(codeverf,codeintmp);
-//                            code.push_back(codeintmp);
-//                        }
-//                        prepcode(code);
-//                        ofstream out(db+"tmp/preppedcode.cpp");
-//                        for (ll i=0;i<code.size();i++) {
-//                            out<<code[i]<<endl;
-//                        }
                         fcopy(cdpth,db+"tmp/preppedcode.cpp");
                         fcopy(cdpth,db+target+".cpp");
-                        //Compile
+                        //MARK:Compile
                         system((safespace(db+"gpphelper")+" "+username).c_str());
                         bool compile=true;
                         ifstream in(db+"tmp/err");
@@ -1156,13 +1143,14 @@ int main() {
                             for (ll i=1;i<=folders;i++) system(("cp "+safespace(db+"tmp/exe")+" "+safespace(db+"tmp/"+to_string(i)+"/hwexe"+to_string(i))).c_str());
                             //Start the first batch
                             chrono::high_resolution_clock::time_point timer[folders];
+                            //MARK:START
                             for (ll i=1;i<=folders;i++) {
                                 ll curtask=rmtasks.front();
                                 rmtasks.pop();
                                 //Write question number
                                 //Write to the bridge
                                 ofstream foldout(db+"tmp/pth.bridge");
-                                foldout<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
+                                foldout<<i;
                                 foldout.close();
                                 //Write in files
                                 foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
@@ -1170,6 +1158,9 @@ int main() {
                                 for (ll j=1;j<indata[curtask-1].size();j++) {
                                     foldout<<endl<<indata[curtask-1][j];
                                 }
+                                foldout.close();
+                                foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
                                 foldout.close();
                                 //Copy over openhelper
                                 system(("cp "+safespace(db+"openhelper")+" "+safespace(db+"tmp/"+to_string(i))).c_str());
@@ -1186,9 +1177,8 @@ int main() {
                                     usleep(1e4);
                                 }
                                 timer[i-1]=chrono::high_resolution_clock::now();
-                                ofstream qnum(db+"tmp/"+to_string(i)+"/qnum.txt");
-                                qnum<<curtask;
-                                qnum.close();
+                                ofstream cle(db+"tmp/"+to_string(i)+"/pth/bridge");
+                                cle.close();
                             }
                             bool mainsig[folders];
                             for (ll i=1;i<=folders;i++) {
@@ -1201,8 +1191,12 @@ int main() {
                                         //Look for main.signal
                                         ifstream mainsigtest(db+"tmp/"+to_string(i)+"/main.signal");
                                         if (mainsigtest.good()) {
-                                            mainsig[i-1]=true;
-                                            continue;
+                                            string legit;
+                                            mainsigtest>>legit;
+                                            if (legit=="COM") {
+                                                mainsig[i-1]=true;
+                                                continue;
+                                            }
                                         }
                                         if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1000) {
                                             system(("killall hwexe"+to_string(i)).c_str());
@@ -1214,41 +1208,33 @@ int main() {
                                     if (rmtasks.empty()) break;
                                     if (mainsig[i-1]) { //if one of them are available...
                                         mainsig[i-1]=false;
-                                        system(("rm "+safespace(db+"tmp/"+to_string(i)+"/ini.signal")).c_str());
-                                        ofstream mainsil(db+"tmp/"+to_string(i)+"/main.signal");
-                                        mainsil<<"SILENCE";
-                                        mainsil.close();
-                                        system(("rm "+safespace(db+"tmp/"+to_string(i)+"/main.signal")).c_str());
-                                        ifstream qdnrd(db+"tmp/"+to_string(i)+"/qnum.txt");
+                                        ofstream cle(db+"tmp/"+to_string(i)+"/main.signal");
+                                        cle.close();
+                                        cle.open(db+"tmp/"+to_string(i)+"/ini.signal");
+                                        cle.close();
                                         ll curtask=rmtasks.front();
                                         rmtasks.pop();
 //                                        cout<<"Start "<<curtask<<endl;
-                                        //Write question number
-                                        ofstream qnum(db+"tmp/"+to_string(i)+"/qnum.txt");
-                                        qnum<<curtask;
-                                        qnum.close();
-                                        //Write to the bridge
-                                        ofstream foldout(db+"tmp/pth.bridge");
-                                        foldout<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
-                                        foldout.close();
                                         //Write in files
+                                        ofstream foldout;
                                         foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
                                         if (indata[curtask-1].size()!=0) foldout<<indata[curtask-1][0];
                                         for (ll j=1;j<indata[curtask-1].size();j++) {
                                             foldout<<endl<<indata[curtask-1][j];
                                         }
                                         foldout.close();
-                                        //Copy over openhelper
-                                        system(("cp "+safespace(db+"openhelper")+" "+safespace(db+"tmp/"+to_string(i))).c_str());
-                                        rename((db+"tmp/"+to_string(i)+"/openhelper").c_str(),(db+"tmp/"+to_string(i)+"/openhelper"+to_string(curtask)).c_str());
-                                        //Open openhelper
-                                        system(("open "+safespace(db+"tmp/"+to_string(i)+"/openhelper"+to_string(curtask))).c_str());
-                                        //Wait for wait.signal
+                                        //Write to the bridge
+                                        foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                        foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
+                                        foldout.close();
+                                        //Wait for ini.signal
                                         while (true) {
                                             ifstream signaltest(db+"tmp/"+to_string(i)+"/ini.signal");
+                                            string legit;
                                             if (signaltest.good()) {
+                                                getline(signaltest,legit);
+                                                if (legit=="Ini") break;
                                                 signaltest.close();
-                                                break;
                                             }
                                             usleep(1e4);
                                         }
@@ -1256,6 +1242,11 @@ int main() {
                                     }
                                 }
                                 usleep(1e4);
+                            }
+                            for (ll i=1;i<=folders;i++) {
+                                ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                stopsig<<"STOP";
+                                stopsig.close();
                             }
                             while (true) {
                                 bool canbk=true;
@@ -1266,21 +1257,25 @@ int main() {
                                         //Look for TE
                                         ifstream mainsigtest(db+"tmp/"+to_string(i)+"/main.signal");
                                         if (mainsigtest.good()) {
-                                            mainsig[i-1]=true;
-                                            mainsigtest.close();
-                                            continue;
+                                            string legit;
+                                            getline(mainsigtest,legit);
+                                            if (legit=="COM") {
+                                                mainsig[i-1]=true;
+                                                mainsigtest.close();
+                                                continue;
+                                            }
                                         }
                                         mainsigtest.close();
-                                        if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1000) {
+                                        if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1500) {
                                             system(("killall hwexe"+to_string(i)).c_str());
                                             mainsig[i-1]=true;
                                         }
-                                        //Look for main.signal
                                     }
                                 }
                                 if (canbk) break;
                                 usleep(1e4);
                             }
+                            
                             //Compare output
                             ll timeres[dtpt];
                             for (ll i=1;i<=dtpt;i++) {
