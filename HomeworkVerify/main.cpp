@@ -1,6 +1,5 @@
 #include <iostream>
 #include <unistd.h>
-#include <stdio.h>
 #include <fstream>
 #include <vector>
 #include <sstream>
@@ -202,6 +201,7 @@ void nml(string &s) {
     }
 }
 int main() {
+    //TODO:Keep helpers alive to save launchd time
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -302,6 +302,7 @@ int main() {
             convtest.close();
         } else {
             convtest.close();
+            install(0);
             cout<<"v1.3 of Homework introduces a new storage format, DWT. DWT allows for seamless compatibility between versions of Homework. We'll now convert your old MAN file to DWT!"<<endl;
             system(safespace(db+"convtool").c_str());
             cout<<"Please reopen Homework."<<endl;
@@ -465,7 +466,7 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to LM7's Homework(v1.3.3). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        cout<<"Welcome to LM7's Homework(v1.3.4). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         sort(data.begin(),data.end(),cmp);
         bool incompl=false;
         for (ll i=0;i<data.size();i++) {
@@ -897,7 +898,7 @@ int main() {
             }
             if (!hitach) {
                 if (vtmp=="changelog") {
-                    cout<<"What's changed in v1.3.3:"<<endl<<"Bug fixes and improvements"<<endl;
+                    cout<<"What's changed in v1.3.4:"<<endl<<"Bug fixes and improvements"<<endl;
                 } else if (vtmp=="kill") return 0;
                 else if (vtmp=="crypt") {
                     cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
