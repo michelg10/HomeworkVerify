@@ -55,7 +55,7 @@ void install(bool comple) {
         system(("mkdir "+safespace(db)).c_str());
         system(("mkdir "+safespace(db+"tmp/")).c_str());
     }
-    //Install cores(39824),gpphelper(48608),openhelper(135472)y,handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //Install cores(39824),gpphelper(48608),openhelper(135904)y,handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
     const unsigned char* tmp=cores();
     ofstream installer(db+"cores",ios::binary);
     for (ll i=0;i<39824;i++) installer<<tmp[i];
@@ -70,7 +70,7 @@ void install(bool comple) {
     
     installer.open(db+"openhelper",ios::binary);
     tmp = openhelper();
-    for (ll i=0;i<135472;i++) installer<<tmp[i];
+    for (ll i=0;i<135904;i++) installer<<tmp[i];
     installer.close();
     system(("chmod 755 "+safespace(db+"openhelper")).c_str());
     
@@ -200,7 +200,6 @@ void nml(string &s) {
     }
 }
 int main() {
-    //TODO:Keep helpers alive to save launchd time
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -209,7 +208,7 @@ int main() {
     intcont["RETENTION"]=&rten;
     intcont["AUTOSAVE"]=&autosave;
     intcont["HELPERVER"]=&helperver;
-    ll const helpertar=2;
+    ll const helpertar=4;
     //Defaults
     rten=6;
     mltcore=1;
@@ -465,7 +464,7 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to LM7's Homework(v1.4). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        cout<<"Welcome to LM7's Homework(v1.4.1). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         sort(data.begin(),data.end(),cmp);
         bool incompl=false;
         for (ll i=0;i<data.size();i++) {
@@ -897,7 +896,7 @@ int main() {
             }
             if (!hitach) {
                 if (vtmp=="changelog") {
-                    cout<<"What's changed in v1.4:"<<endl<<"New engine"<<endl;
+                    cout<<"What's changed in v1.4.1:"<<endl<<"Bug fixes and improvements"<<endl;
                 } else if (vtmp=="kill") return 0;
                 else if (vtmp=="crypt") {
                     cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
@@ -1074,13 +1073,17 @@ int main() {
                     cout<<probdes[i]<<endl;
                 }
                 cout<<"--------"<<endl<<"Input:"<<endl;
-                for (ll i=0;i<probin.size();i++) {
-                    cout<<probin[i]<<endl;
-                }
+                if (probin.size()) {
+                    for (ll i=0;i<probin.size();i++) {
+                        cout<<probin[i]<<endl;
+                    }
+                } else cout<<"None"<<endl;
                 cout<<"--------"<<endl<<"Output:"<<endl;
-                for (ll i=0;i<probout.size();i++) {
-                    cout<<probout[i]<<endl;
-                }
+                if (probout.size()) {
+                    for (ll i=0;i<probout.size();i++) {
+                        cout<<probout[i]<<endl;
+                    }
+                } else cout<<"None"<<endl;
                 for (ll i=0;i<ex;i++) {
                     cout<<"--------"<<endl<<"Example input "<<i+1<<':'<<endl;
                     for (ll j=0;j<inex[i].size();j++) {
@@ -1121,14 +1124,9 @@ int main() {
                         //MARK:Compile
                         system((safespace(db+"gpphelper")+" "+username).c_str());
                         bool compile=true;
-                        ifstream in(db+"tmp/err");
-                        if (in.good()) {
-                            string wtrtest;
-                            getline(in,wtrtest);
-                            if (wtrtest!="") {
-                                compile=false;
-                            }
-                        }
+                        ifstream testcomp(db+"tmp/exe");
+                        if (testcomp.good()) compile=true;
+                        else compile=false;
                         if (compile) {
                             //run multicore
                             ll folders=min(dtpt,mltcore);
@@ -1177,7 +1175,7 @@ int main() {
                                     usleep(1e4);
                                 }
                                 timer[i-1]=chrono::high_resolution_clock::now();
-                                ofstream cle(db+"tmp/"+to_string(i)+"/pth/bridge");
+                                ofstream cle(db+"tmp/"+to_string(i)+"/pth.bridge");
                                 cle.close();
                             }
                             bool mainsig[folders];
@@ -1293,43 +1291,48 @@ int main() {
                                     //Evaluation:Remove last blank line
                                     vector<string>outcomp;
                                     ifstream outputc(db+"tmp/out"+to_string(i)+".txt");
-                                    while (!outputc.eof()) {
-                                        string tmp;
-                                        getline(outputc,tmp);
-                                        outcomp.push_back(tmp);
-                                    }
-                                    if (outcomp[outcomp.size()-1]=="") outcomp.erase(outcomp.begin()+outcomp.size()-1);
-                                    for (ll j=0;j<outcomp.size();j++) {
-                                        if (outcomp[j][outcomp[j].size()-1]==' ') {
-                                            outcomp[j].erase(outcomp[j].begin()+outcomp[j].size()-1);
+                                    if (outputc.good()) {
+                                        while (!outputc.eof()) {
+                                            string tmp;
+                                            getline(outputc,tmp);
+                                            outcomp.push_back(tmp);
                                         }
-                                    }
-                                    if (outdata[i-1][outdata[i-1].size()-1]=="") outdata[i-1].erase(outdata[i-1].begin()+outdata[i-1].size()-1);
-                                    for (ll j=0;j<outdata[i-1].size();j++) {
-                                        if (outdata[i-1][j][outdata[i-1][j].size()-1]==' ') {
-                                            outdata[i-1][j].erase(outdata[i-1][j].begin()+outdata[i-1][j].size()-1);
+                                        if (outcomp[outcomp.size()-1]=="") outcomp.erase(outcomp.begin()+outcomp.size()-1);
+                                        for (ll j=0;j<outcomp.size();j++) {
+                                            if (outcomp[j][outcomp[j].size()-1]==' ') {
+                                                outcomp[j].erase(outcomp[j].begin()+outcomp[j].size()-1);
+                                            }
                                         }
-                                    }
-                                    bool ac = true;
-                                    if (outdata[i-1].size()==outcomp.size()) {
+                                        if (outdata[i-1][outdata[i-1].size()-1]=="") outdata[i-1].erase(outdata[i-1].begin()+outdata[i-1].size()-1);
                                         for (ll j=0;j<outdata[i-1].size();j++) {
-                                            if (outdata[i-1][j].size()==outcomp[j].size()) {
-                                                for (ll k=0;k<outdata[i-1][j].size();k++) {
-                                                    if (outdata[i-1][j][k]!=outcomp[j][k]) {
-                                                        ac=false;
-                                                        break;
-                                                    }
-                                                }
-                                            } else ac=false;
+                                            if (outdata[i-1][j][outdata[i-1][j].size()-1]==' ') {
+                                                outdata[i-1][j].erase(outdata[i-1][j].begin()+outdata[i-1][j].size()-1);
+                                            }
                                         }
-                                    } else ac = false;
-                                    if (ac) {cout<<"-AC:";correct++;}
-                                    else cout<<"-WA:";
-                                    cout<<timeres[i-1]<<"ms"<<endl;
+                                        bool ac = true;
+                                        if (outdata[i-1].size()==outcomp.size()) {
+                                            for (ll j=0;j<outdata[i-1].size();j++) {
+                                                if (outdata[i-1][j].size()==outcomp[j].size()) {
+                                                    for (ll k=0;k<outdata[i-1][j].size();k++) {
+                                                        if (outdata[i-1][j][k]!=outcomp[j][k]) {
+                                                            ac=false;
+                                                            break;
+                                                        }
+                                                    }
+                                                } else ac=false;
+                                            }
+                                        } else ac = false;
+                                        if (ac) {cout<<"-AC:";correct++;}
+                                        else cout<<"-WA:";
+                                        cout<<timeres[i-1]<<"ms"<<endl;
+                                    } else cout<<"-RTE"<<endl;
                                 }
                             }
                             system(("rm -r "+safespace(db+"tmp/*")).c_str());
                             ll score = round(((ld)correct/dtpt)*100.0);
+                            if (data[hwpoint[atoll(homeans.c_str())-5]].score>score) {
+                                cout<<"Your submission score:"<<score<<endl;
+                            }
                             data[hwpoint[atoll(homeans.c_str())-5]].score=max(data[hwpoint[atoll(homeans.c_str())-5]].score,score);
                             cout<<"Your current score:"<<data[hwpoint[atoll(homeans.c_str())-5]].score<<endl;
                             if (score==100) {
@@ -1383,54 +1386,3 @@ int main() {
         }
     }
 }
-// .lm7hwpkg
-/*
- 
- Submit homework page:
- [1]New assignment
- [2]Create homework package
- [3]Settings
- [4]Quit
- 
- ----------
- 
- Incomplete assignments
- [5]A+B Problem:23
- [6]Random_question:93
- [7]ZCrap:0
- 
- ----------
- 
- Completed assignments
- [8]Fastest man alive
- [9]Compl_question
- 
- Settings page:
- [1]Sort:Alphabetical increasing
- [2]Keep assignments for:Forever
- [3]Multicore settings:2 cores
- 
- Menu on an incomplete assignment:
- A+B Problem
- Your current score:23
- Question requirements:
- blahblahblah
- 
- 
- //lmao
- 
- How to evaluate:
- RTE&ME CE WA AC TE
- 
- Running the program
- 1.Open program EXE
- 2.Repeatedly check for RTURN for 1s
- 3.If program return file is not there, terminate execution
- 4.Return file there->Check for ans to see if AC/WA
- Return file not there->TE/RTE
- 
- /*
- 
- When /* is detetected: DELETE EVERYTHING UNTIL "* /" is found
- When // is detected: DELETE EVERYTHING ON THE SAME LINE
- */
