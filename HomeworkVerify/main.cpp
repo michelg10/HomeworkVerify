@@ -20,6 +20,9 @@
 using namespace std;
 typedef long long ll;
 typedef long double ld;
+#define APPL 0
+#define WIN 1
+#define SYS 0
 struct hw {
     string id;
     ll score;
@@ -49,30 +52,62 @@ bool readf(vector<string>&s,string path) {
     return 1;
 }
 string username = getlogin(),db;
+//MARK:SYSTEM CALLS
+void inAppLaunch(string s,string args) {
+    if (SYS==APPL) {
+        system((safespace(s)+args).c_str());
+    }
+}
+void clc() {
+    if (SYS==APPL) {
+        system("clear");
+    }
+}
+void removeWithinFolder(string pathWithSlash) {
+    if (SYS==APPL) {
+        system(("rm -r "+safespace(pathWithSlash)+"*").c_str());
+    }
+}
+void makeExe(string path) {
+    if (SYS==APPL) {
+        system(("chmod 755 "+safespace(path)).c_str());
+    }
+}
+void makeDir(string pathWithSlash) {
+    if (SYS==APPL) {
+        system(("mkdir "+safespace(pathWithSlash)).c_str());
+    }
+}
+void removeFolder(string pathWithSlash) {
+    if (SYS==APPL) {
+        system(("rm -r "+safespace(pathWithSlash)).c_str());
+    }
+}
+//MARK:INSTALL
 void install(bool comple) {
     cout<<"Installing neccessary components... ";
     if (comple) {
-        system(("mkdir "+safespace(db)).c_str());
-        system(("mkdir "+safespace(db+"tmp/")).c_str());
+        makeDir(db);
+        makeDir(db+"tmp/");
     }
     //Install cores(39824),gpphelper(48608),openhelper(135904)y,handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
     const unsigned char* tmp=cores();
     ofstream installer(db+"cores",ios::binary);
     for (ll i=0;i<39824;i++) installer<<tmp[i];
     installer.close();
-    system(("chmod 755 "+safespace(db+"cores")).c_str());
+    makeExe(db+"cores");
     
     installer.open(db+"gpphelper",ios::binary);
     tmp = gpphelper();
     for (ll i=0;i<48608;i++) installer<<tmp[i];
     installer.close();
-    system(("chmod 755 "+safespace(db+"gpphelper")).c_str());
+    makeExe(db+"gpphelper");
     
     installer.open(db+"openhelper",ios::binary);
     tmp = openhelper();
     for (ll i=0;i<135904;i++) installer<<tmp[i];
     installer.close();
-    system(("chmod 755 "+safespace(db+"openhelper")).c_str());
+    makeExe(db+"openhelper");
     
     installer.open(db+"U2PQX4CHY3SOJ31E.wav",ios::binary);
     tmp=handclap();
@@ -88,19 +123,19 @@ void install(bool comple) {
     tmp = acsound();
     for (ll i=0;i<94848;i++) installer<<tmp[i];
     installer.close();
-    system(("chmod 755 "+safespace(db+"acsound")).c_str());
+    makeExe(db+"acsound");
     
     installer.open(db+"soundkill",ios::binary);
     tmp = soundkill();
     for (ll i=0;i<31840;i++) installer<<tmp[i];
     installer.close();
-    system(("chmod 755 "+safespace(db+"soundkill")).c_str());
+    makeExe(db+"soundkill");
     
     installer.open(db+"soundsetup",ios::binary);
     tmp=soundsetup();
     for (ll i=0;i<114720;i++) installer<<tmp[i];
     installer.close();
-    system(("chmod 755 "+safespace(db+"soundsetup")).c_str());
+    makeExe(db+"soundsetup");
     
     installer.open(db+"libirrklang.dylib",ios::binary);
     tmp=irrlib();
@@ -111,7 +146,7 @@ void install(bool comple) {
     tmp=convtool();
     for (ll i=0;i<109344;i++) installer<<tmp[i];
     installer.close();
-    system(("chmod 755 "+safespace(db+"convtool")).c_str());
+    makeExe(db+"convtool");
     cout<<"done"<<endl;
 }
 string date() {
@@ -139,25 +174,37 @@ string key = "FB384BE6E7009275";
 string iv = "755CA3572C3FAC78";
 string salt = "8C55A67258E39056";
 string cmdenc = "openssl enc -aes-256-cbc -K "+key+" -iv "+iv+" -S "+salt;
-ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver;
+ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock;
+string lockedf;
 bool cmp(hw const &a, hw const &b) {
+//    cout<<"COMPARING "<<a.name<<' '<<b.name<<endl;
     if (srtmode==1) return a.name<b.name;
     else if (srtmode==2) return a.name>b.name;
-    else if (srtmode==3) return a.score<b.score;
-    else if (srtmode==4) return a.score>b.score;
+    else if (srtmode==3) {
+        if (a.score==b.score) return a.name<b.name;
+        return a.score<b.score;
+    }
+    else if (srtmode==4) {
+        if (a.score==b.score) return a.name<b.name;
+        return a.score>b.score;
+    }
     else if (srtmode==5||srtmode==6) {
-        struct tm tm1,tm2;
+        if (a.date==b.date) {
+            return a.name<b.name;
+        }
+        tm tm1,tm2;
         strptime(a.date.c_str(),"%a %b %d %T %Y",&tm1);
         strptime(b.date.c_str(),"%a %b %d %T %Y",&tm2);
         time_t t1,t2;
         t1=mktime(&tm1);
         t2=mktime(&tm2);
-        if (difftime(t1,t2)>0) {
+        if (t1-t2>0) {
             if (srtmode==5) return false;
             else return true;
-        } else
+        } else {
             if (srtmode==6) return true;
             else return false;
+        }
     }
     return 0;
 }
@@ -166,21 +213,23 @@ struct egg {
     string ach, trig, msg;
 };
 vector<egg>easter;
-ll sound = 0;
 map<string,ll*>intcont;
+map<string,string*>strcont;
 map<string,vector<string>>structref;
 struct soundlog {
     string fname,sname;
 };
-ll autosave;
 bool secret[100];
 vector<soundlog>audio;
 vector<ll>selaud;
 void savedata() {
     ofstream out(db+"contents.dwt");
-    out<<"VERS"<<endl<<"1.3"<<endl<<"ACH"<<endl;
+    out<<"VERS"<<endl<<"1.5"<<endl<<"ACH"<<endl;
     for (ll i=0;i<easter.size();i++) out<<secret[i];
-    out<<endl<<"AUTOSAVE"<<endl<<autosave<<endl<<"SOUND"<<endl<<sound<<endl<<"CORRECT"<<endl<<cor<<endl<<"INCORRECT"<<endl<<incor<<endl<<"SORT"<<endl<<srtmode<<endl<<"MULTICORE"<<endl<<mltcore<<endl<<"RETENTION"<<endl<<rten<<endl<<"HELPERVER"<<endl<<helperver<<endl<<"STARTSTRUCT"<<endl<<"Hwf"<<endl<<"FNAME"<<endl<<"SCORE"<<endl<<"NAME"<<endl<<"DATE"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"Song"<<endl<<"FNAME"<<endl<<"SNAME"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"selaud"<<endl<<"AUDID"<<endl<<"ENDSTRUCT"<<endl<<"START"<<endl<<"Song"<<endl;
+    out<<endl;
+    for (map<string,ll*>::iterator it=intcont.begin();it!=intcont.end();it++) out<<it->first<<endl<<*it->second<<endl;
+    for (map<string,string*>::iterator it=strcont.begin();it!=strcont.end();it++) out<<it->first<<endl<<*it->second<<endl;
+    out<<"STARTSTRUCT"<<endl<<"Hwf"<<endl<<"FNAME"<<endl<<"SCORE"<<endl<<"NAME"<<endl<<"DATE"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"Song"<<endl<<"FNAME"<<endl<<"SNAME"<<endl<<"ENDSTRUCT"<<endl<<"STARTSTRUCT"<<endl<<"selaud"<<endl<<"AUDID"<<endl<<"ENDSTRUCT"<<endl<<"START"<<endl<<"Song"<<endl;
     for (ll i=0;i<audio.size();i++) out<<audio[i].fname<<endl<<audio[i].sname<<endl;
     out<<"END"<<endl<<"Song"<<endl<<"START"<<endl<<"Hwf";
     for (ll i=0;i<data.size();i++) out<<endl<<data[i].id<<endl<<data[i].score<<endl<<data[i].name<<endl<<data[i].date;
@@ -199,7 +248,12 @@ void nml(string &s) {
         if (s[s.size()-1]==' ') s.erase(s.size()-1);
     }
 }
+//MARK:MAIN
 int main() {
+    //TODO:Add ANS lock
+    //TODO:Add overflow for questions(Set overflow in settings)
+    //TODO:Make helpers start on program launch. relaunch if helper is detected to be dead.
+    //TODO:Add batch processing
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -208,6 +262,9 @@ int main() {
     intcont["RETENTION"]=&rten;
     intcont["AUTOSAVE"]=&autosave;
     intcont["HELPERVER"]=&helperver;
+    intcont["OVRFLW"]=&ovrflw;
+    intcont["ANSLOCK"]=&anslock;
+    strcont["LOCKEDF"]=&lockedf;
     ll const helpertar=4;
     //Defaults
     rten=6;
@@ -216,6 +273,7 @@ int main() {
     incor=cor=0;
     sound=0;
     autosave=1;
+    ovrflw=0;
     audio.push_back({"U2PQX4CHY3SOJ31E","Handclap"});
     audio.push_back({"D63SR3HEXSB6JX1N","High on Life"});
     selaud.push_back(0);
@@ -244,7 +302,7 @@ int main() {
         easter.push_back({"Greatest club of all time","c++ programming","Yee!"});
     }
     //openssl enc -aes-256-cbc -K FB384BE6E7009275 -iv 755CA3572C3FAC78 -S 8C55A67258E39056
-    system("clear");
+    clc();
     map<ll,char>randname;
     for (ll i=48;i<=57;i++) {
         randname[i-48]=i;
@@ -302,7 +360,7 @@ int main() {
             convtest.close();
             install(0);
             cout<<"v1.3 of Homework introduces a new storage format, DWT. DWT allows for seamless compatibility between versions of Homework. We'll now convert your old MAN file to DWT!"<<endl;
-            system(safespace(db+"convtool").c_str());
+            inAppLaunch(db+"convtool","");
             cout<<"Please reopen Homework."<<endl;
             return 0;
         }
@@ -315,7 +373,7 @@ int main() {
     ofstream rmsil(db+"tmp/sl.silent");
     rmsil<<"SILENCE!";
     rmsil.close();
-    system(("rm -r "+db+"tmp/*").c_str());
+    removeWithinFolder(db+"tmp/");
     for (ll i=0;i<easter.size();i++) secret[i]=0;
     if (in.good()&&!freshins) {
         vector<string>contentsf;
@@ -398,8 +456,10 @@ int main() {
                         structref[stuname].push_back(contentsf[i]);
                     }
                 } else impissue=true;
-            } else if (intcont[finkey]!=NULL) {
+            } else if (intcont.count(finkey)) {
                 *intcont[finkey]=atoll(contentsf[++i].c_str());
+            } else if (strcont.count(finkey)) {
+                *strcont[finkey]=contentsf[++i];
             }
         }
     }
@@ -411,7 +471,7 @@ int main() {
         install(0);
         helperver=helpertar;
     }
-    system((safespace(db+"cores")).c_str());
+    inAppLaunch(db+"cores","");
     in.open(db+"cores.txt");
     if (in.good()) {
         string corefin;
@@ -464,7 +524,7 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to LM7's Homework(v1.4.1). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        cout<<"Welcome to LM7's Homework(v1.5). Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         sort(data.begin(),data.end(),cmp);
         bool incompl=false;
         for (ll i=0;i<data.size();i++) {
@@ -474,33 +534,42 @@ int main() {
         }
         ll outcnt = 5;
         vector<ll>hwpoint;
+        ll flw=(ovrflw==0?data.size():ovrflw);
+        ll cnto=0;
         if (incompl) {
             cout<<"--------"<<endl<<"Incomplete Assignments:"<<endl;
-            for (ll i=0;i<data.size();i++) {
+            for (ll i=0;i<data.size()&&cnto<flw;i++) {
                 if (data[i].score<100) {
+                    cnto++;
                     cout<<"["<<outcnt++<<"]"<<data[i].name<<":"<<data[i].score<<endl;
                     hwpoint.push_back(i);
                 }
             }
         }
-        incompl = false;
-        for (ll i=0;i<data.size();i++) {
-            if (data[i].score==100) {
-                incompl=true;
-            }
-        }
-        if (incompl) {
-            cout<<"--------"<<endl<<"Completed assignments:"<<endl;
+        if (flw-cnto>0) {
+            incompl = false;
             for (ll i=0;i<data.size();i++) {
                 if (data[i].score==100) {
-                    cout<<"["<<outcnt++<<"]"<<data[i].name<<endl;
-                    hwpoint.push_back(i);
+                    incompl=true;
+                }
+            }
+            if (incompl) {
+                cout<<"--------"<<endl<<"Completed assignments:"<<endl;
+                for (ll i=0;i<data.size()&&cnto<flw;i++) {
+                    if (data[i].score==100) {
+                        cnto++;
+                        cout<<"["<<outcnt++<<"]"<<data[i].name<<endl;
+                        hwpoint.push_back(i);
+                    }
                 }
             }
         }
+        if (ovrflw!=0&&ovrflw<data.size()) {
+            cout<<"["<<outcnt<<"]"<<"Show "<<data.size()-ovrflw<<" other items..."<<endl;
+        }
         string homeans;
         getline(cin,homeans);
-        system("clear");
+        clc();
         if (homeans=="1") {
             cout<<"Enter the path of the package."<<endl;
             string pkgpth;
@@ -554,7 +623,7 @@ int main() {
                             cout<<"Unexpected error:Missing contents file!"<<endl;
                             pkgcont.close();
                         }
-                        system(("rm -r "+safespace(db+"tmp/*")).c_str());
+                        removeWithinFolder(db+"tmp/");
                         if (autosave) savedata();
                         continue;
                     }
@@ -616,7 +685,7 @@ int main() {
             }
             cout<<"--------"<<endl<<"Press enter to continue..."<<endl;
             cin.get();
-            system("clear");
+            clc();
         } else if (homeans=="3") {
             while (true) {
                 cout<<"Settings"<<endl<<"[1]Sort:";
@@ -657,7 +726,10 @@ int main() {
                     if (asdisabled) cout<<"Disabled due to import issue"<<endl;
                     else cout<<"Disabled"<<endl;
                 }
-                cout<<"[6]Exit Settings"<<endl;
+                cout<<"[6]Limit items on one page to:";
+                if (ovrflw) cout<<ovrflw<<" items"<<endl;
+                else cout<<"Infinite"<<endl;
+                cout<<"[7]Exit Settings"<<endl;
                 string setans;
                 getline(cin,setans);
                 if (setans=="1") {
@@ -827,7 +899,7 @@ int main() {
                             ofstream sil(db+"tmp/sil.txt");
                             sil<<"SILENCE";
                             sil.close();
-                            system(("rm -r "+db+"tmp/*").c_str());
+                            removeWithinFolder(db+"tmp/");
                             system(("open "+safespace(db+"soundsetup")).c_str());
                             ifstream donetest;
                             while (true) {
@@ -868,7 +940,23 @@ int main() {
                         }
                     }
                 } else if (setans=="6") {
-                    system("clear");
+                    cout<<"How many items to limit to? Input 0 for no limits."<<endl;
+                    while (true) {
+                        string itmlim;
+                        getline(cin,itmlim);
+                        if (to_string(atoll(itmlim.c_str()))!=itmlim) {
+                            cout<<"Invalid input!"<<endl;
+                            continue;
+                        }
+                        if (atoll(itmlim.c_str())>=0) {
+                            ovrflw=atoll(itmlim.c_str());
+                            break;
+                        } else {
+                            cout<<"Invalid input!"<<endl;
+                        }
+                    }
+                } else if (setans=="7") {
+                    clc();
                     break;
                 }
             }
@@ -896,7 +984,7 @@ int main() {
             }
             if (!hitach) {
                 if (vtmp=="changelog") {
-                    cout<<"What's changed in v1.4.1:"<<endl<<"Bug fixes and improvements"<<endl;
+                    cout<<"What's changed in v1.5:"<<endl<<"Bug fixes and improvements"<<endl;
                 } else if (vtmp=="kill") return 0;
                 else if (vtmp=="crypt") {
                     cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
@@ -916,7 +1004,7 @@ int main() {
                     string clearall;
                     getline(cin,clearall);
                     if (clearall=="CLEAR") {
-                        system(("rm -r "+safespace(db)).c_str());
+                        removeFolder(db);
                         cout<<"Files cleared. Program will now force quit."<<endl;
                         return 0;
                     }
@@ -935,7 +1023,7 @@ int main() {
             }
         }
         if (vq) {
-            system("clear");
+            clc();
             ifstream bundltest(db+target);
             if (!bundltest.good()) {
                 cout<<"Error! Homework file missing."<<endl;
@@ -1066,7 +1154,7 @@ int main() {
             }
             dtpt--;
             //DELETE EM
-            system(("rm -r "+safespace(db+"tmp/*")).c_str());
+            removeWithinFolder(db+"tmp/");
             while (true) {
                 cout<<endl<<probname<<endl<<"Your current score:"<<data[hwpoint[atoll(homeans.c_str())-5]].score<<endl<<"--------"<<endl<<"Problem description:"<<endl;
                 for (ll i=0;i<probdes.size();i++) {
@@ -1111,7 +1199,7 @@ int main() {
                     ofstream silence(db+"tmp/sl.silence");
                     silence<<"Silent!";
                     silence.close();
-                    system(("rm -r "+safespace(db+"tmp/*")).c_str());
+                    removeWithinFolder(db+"tmp/");
                     cout<<"Enter code path"<<endl;
                     string cdpth;
                     getline(cin,cdpth);
@@ -1122,7 +1210,7 @@ int main() {
                         fcopy(cdpth,db+"tmp/preppedcode.cpp");
                         fcopy(cdpth,db+target+".cpp");
                         //MARK:Compile
-                        system((safespace(db+"gpphelper")+" "+username).c_str());
+                        inAppLaunch(db+"gpphelper"," "+username);
                         bool compile=true;
                         ifstream testcomp(db+"tmp/exe");
                         if (testcomp.good()) compile=true;
@@ -1328,7 +1416,7 @@ int main() {
                                     } else cout<<"-RTE"<<endl;
                                 }
                             }
-                            system(("rm -r "+safespace(db+"tmp/*")).c_str());
+                            removeWithinFolder(db+"tmp/");
                             ll score = round(((ld)correct/dtpt)*100.0);
                             if (data[hwpoint[atoll(homeans.c_str())-5]].score>score) {
                                 cout<<"Your submission score:"<<score<<endl;
@@ -1358,7 +1446,7 @@ int main() {
                             if (autosave) savedata();
                             cout<<"Press return to continue...";
                             cin.get();
-                            system((db+"soundkill").c_str());
+                            inAppLaunch(db+"soundkill", "");
                         } else {
                             cout<<"Compilation error."<<endl;
                         }
@@ -1367,17 +1455,17 @@ int main() {
                     }
                 } else if (hwsubans=="2") {
                     data.erase(data.begin()+hwpoint[atoll(homeans.c_str())-5]);
-                    system(("rm "+safespace(db+target)).c_str());
-                    if (sccode) system(("rm "+safespace(db+target+".cpp")).c_str());
-                    system("clear");
+                    remove((db+target).c_str());
+                    if (sccode) remove((db+target+".cpp").c_str());
+                    clc();
                     break;
                 } else if (hwsubans=="3"&&sccode) {
                     system(("open -a Finder "+safespace(db+target+".cpp")).c_str());
                 } else if (hwsubans=="3"&&!sccode) {
-                    system("clear");
+                    clc();
                     break;
                 } else if (hwsubans=="4"&&sccode) {
-                    system("clear");
+                    clc();
                     break;
                 } else {
                     cout<<"Invalid response."<<endl;
