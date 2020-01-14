@@ -73,6 +73,9 @@ void makeExe(string path) {
     if (SYS==APPL) {
         system(("chmod 755 "+safespace(path)).c_str());
     }
+    if (SYS==WIN) {
+        //do nothing
+    }
 }
 void makeDir(string pathWithSlash) {
     if (SYS==APPL) {
@@ -84,6 +87,11 @@ void removeFolder(string pathWithSlash) {
         system(("rm -r "+safespace(pathWithSlash)).c_str());
     }
 }
+void unzip(string from, string to) {
+    if (SYS==APPL) {
+        system(("unzip -o -qq "+safespace(to)+" -d "+safespace(from)).c_str());
+    }
+}
 //MARK:INSTALL
 void install(bool comple) {
     cout<<"Installing neccessary components... ";
@@ -91,20 +99,22 @@ void install(bool comple) {
         makeDir(db);
         makeDir(db+"tmp/");
     }
-    //Install cores(39824),gpphelper(48608),openhelper(135904)y,handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //Install cores(39824),gpphelper(48608),openhelper(135904),handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    string pstfx="";
+    if (SYS==WIN) pstfx=".exe";
     const unsigned char* tmp=cores();
-    ofstream installer(db+"cores",ios::binary);
+    ofstream installer(db+"cores"+pstfx,ios::binary);
     for (ll i=0;i<39824;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"cores");
     
-    installer.open(db+"gpphelper",ios::binary);
+    installer.open(db+"gpphelper"+pstfx,ios::binary);
     tmp = gpphelper();
     for (ll i=0;i<48608;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"gpphelper");
     
-    installer.open(db+"openhelper",ios::binary);
+    installer.open(db+"openhelper"+pstfx,ios::binary);
     tmp = openhelper();
     for (ll i=0;i<135904;i++) installer<<tmp[i];
     installer.close();
@@ -120,19 +130,19 @@ void install(bool comple) {
     for (ll i=0;i<1160862;i++) installer<<tmp[i];
     installer.close();
     
-    installer.open(db+"acsound",ios::binary);
+    installer.open(db+"acsound"+pstfx,ios::binary);
     tmp = acsound();
     for (ll i=0;i<94848;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"acsound");
     
-    installer.open(db+"soundkill",ios::binary);
+    installer.open(db+"soundkill"+pstfx,ios::binary);
     tmp = soundkill();
     for (ll i=0;i<31840;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"soundkill");
     
-    installer.open(db+"soundsetup",ios::binary);
+    installer.open(db+"soundsetup"+pstfx,ios::binary);
     tmp=soundsetup();
     for (ll i=0;i<114720;i++) installer<<tmp[i];
     installer.close();
@@ -143,7 +153,7 @@ void install(bool comple) {
     for (ll i=0;i<1975552;i++) installer<<tmp[i];
     installer.close();
     
-    installer.open(db+"convtool",ios::binary);
+    installer.open(db+"convtool"+pstfx,ios::binary);
     tmp=convtool();
     for (ll i=0;i<109344;i++) installer<<tmp[i];
     installer.close();
@@ -255,12 +265,31 @@ void nml(string &s) {
     }
 }
 void changelog() {
-    cout<<"What's changed in v1.5:"<<endl<<"Sandboxing for security"<<endl<<"Answer files"<<endl<<"Limit items"<<endl<<"Batch evaluation"<<endl<<"Bug fixes and improvements"<<endl;
+    cout<<"What's changed in v1.5:"<<endl<<"Sandboxing for security"<<endl<<"Answer files"<<endl<<"Limit items"<<endl<<"Batch evaluation"<<endl<<"New cross platform file format:hwfx"<<"Bug fixes and improvements"<<endl;
 }
 //MARK:MAIN
+ll pkgImport(ifstream &rdpkg, stringstream &newPkg) {
+    stringstream checkNef;
+    if (rdpkg.good()) {
+        checkNef<<rdpkg.rdbuf();
+        string nef=checkNef.str();
+        if (nef.find("HwfxContents::")==string::npos) {
+            newPkg<<nef<<endl;
+        } else {
+            cout<<"Error! Title file contains keyword \"HwfxContents::\"!"<<endl;
+            return -1;
+        }
+    } else {
+        cout<<"Error! Title file missing! Make sure you have the right file hierarchy!"<<endl;
+        return -1;
+    }
+    return 0;
+}
 int main() {
     //TODO:Make helpers start on program launch. relaunch if helper is detected to be dead.
     //TODO:Add batch processing
+    //TODO:Reconvert openhelper
+    //TODO:Add search
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -381,6 +410,7 @@ int main() {
     //1.3 ONLY
     ifstream in(db+"contents.dwt");
     bool impissue=false;
+    bool impfsVers=false;
     ofstream rmsil(db+"tmp/sl.silent");
     rmsil<<"SILENCE!";
     rmsil.close();
@@ -483,6 +513,10 @@ int main() {
             changelog();
         }
     }
+    if (fsvers!=0&&fsvers!=2) {
+        impissue=true;
+        impfsVers=true;
+    }
     fsvers=2;
     vers="1.5";
     ofstream out(db+"db.txt");
@@ -543,7 +577,8 @@ int main() {
         string target;
         bool vq = false;
         if (impissue) {
-            cout<<"!!!Contents file corrupted. Press [F] to force quit. This will prevent further corruption of the file"<<endl<<"You will lose all unsaved data. ";
+            if (impfsVers) cout<<"!!!Contents file has wrong file system version. Press [F] to force quit. This will prevent corruption of the file"<<endl<<"You will lose all unsaved data. ";
+            else cout<<"!!!Contents file corrupted. Press [F] to force quit. This will prevent further corruption of the file"<<endl<<"You will lose all unsaved data. ";
             if (asdisabled&&!autosave) {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
@@ -830,157 +865,161 @@ int main() {
                     }
                     if (autosave) savedata();
                 } else if (setans=="4") {
-                    bool dirlib=false;
-                    bool soundlib=false;
-                    ifstream libftest("/usr/local/lib");
-                    if (libftest.good()) {
-                        dirlib=true;
-                    }
-                    libftest.close();
-                    if (dirlib) {
-                        libftest.open("/usr/local/lib/libirrklang.dylib");
+                    if (SYS==APPL) {
+                        bool dirlib=false;
+                        bool soundlib=false;
+                        ifstream libftest("/usr/local/lib");
                         if (libftest.good()) {
-                            soundlib=true;
+                            dirlib=true;
                         }
-                    }
-                    if (dirlib&&soundlib) {
-                        while (true) {
-                            if (sound) {
-                                while (true) {
-                                    cout<<"Current selectiion:";
-                                    if (selaud.size()==audio.size()) cout<<"All";
-                                    else if (selaud.size()==0) {
-                                        cout<<"None";
-                                    } else {
-                                        cout<<audio[selaud[0]].sname;
-                                        for (ll i=1;i<selaud.size();i++) {
-                                            cout<<", "<<audio[selaud[i]].sname;
-                                        }
-                                    }
-                                    bool soundcapped=true;
-                                    if (audio.size()<35) soundcapped=false;
-                                    cout<<endl<<"[1]Disable sound"<<endl;
-                                    if (!soundcapped) cout<<"[2]Add new sounds"<<endl;
-                                    cout<<"["<<3-soundcapped<<"]Delete sounds"<<endl<<"--------"<<endl<<"["<<4-soundcapped<<"]Select all"<<endl;
-                                    map<char, ll>schoice;
-                                    for (ll i=0;i<audio.size();i++) {
-                                        if (i+5-soundcapped<=9) {
-                                            cout<<"["<<i+5-soundcapped<<"]"<<audio[i].sname<<endl;
-                                            schoice[i+5-soundcapped+'0']=i+1;
-                                        } else {
-                                            schoice['A'+i-5-soundcapped]=i+1;
-                                            cout<<"["<<(char)('A'+i-5-soundcapped)<<"]"<<audio[i].sname<<endl;
-                                        }
-                                    }
-                                    cout<<"Select songs to play after a correct submission..."<<endl;
-                                    string songchoice;
-                                    getline(cin,songchoice);
-                                    bool fc[audio.size()];
-                                    bool choosesounds=true;
-                                    for (ll i=0;i<audio.size();i++) fc[i]=0;
-                                    for (ll i=0;i<songchoice.length();i++) {
-                                        if (songchoice[i]==4-soundcapped+'0') for (ll j=0;j<audio.size();j++) fc[j]=1;
-                                        else if (schoice[songchoice[i]]!=0) fc[schoice[songchoice[i]]-1]=1;
-                                        else if (songchoice[i]=='2') {
-                                            choosesounds=false;
-                                            cout<<"Alert! Song must be in WAV format."<<endl<<"Input the path of the song..."<<endl;
-                                            string newsoundpth;
-                                            getline(cin,newsoundpth);
-                                            nml(newsoundpth);
-                                            ifstream newsoundtest(newsoundpth);
-                                            if (newsoundtest.good()) {
-                                                newsoundtest.close();
-                                                cout<<"What is the name of the song?"<<endl;
-                                                string songn;
-                                                getline(cin,songn);
-                                                string songf="";
-                                                for (ll j=0;j<16;j++) songf+=randname[rand()%36];
-                                                fcopy(newsoundpth,db+songf+".wav");
-                                                audio.push_back({songf,songn});
-                                                cout<<"Song "<<songn<<" imported successfully."<<endl;
-                                            } else cout<<"Error reading song!"<<endl;
-                                            //add new sounds
-                                            break;
-                                        } else if (songchoice[i]==3-soundcapped+'0') {
-                                            choosesounds=false;
-                                            for (ll i=0;i<audio.size();i++) {
-                                                cout<<"[";
-                                                i<9?cout<<i+1:cout<<(char)('A'+i-9);
-                                                cout<<"]"<<audio[i].sname<<endl;
-                                            }
-                                            cout<<"What song do you want to delete?"<<endl;
-                                            string delschoice;
-                                            getline(cin,delschoice);
-                                            set<ll>delchoice;
-                                            for (ll i=0;i<delschoice.length();i++) delchoice.insert(delschoice[i]>='A'?delschoice[i]-'A'+10-1:delschoice[i]-'0'-1);
-                                            vector<ll>todel;
-                                            for (set<ll>::iterator i=delchoice.begin();i!=delchoice.end();i++) if (*i<audio.size()) todel.push_back(*i); else break;
-                                            if (todel.size()) cout<<"Are you sure you want to delete ";
-                                            for (ll i=0;i<todel.size()-1;i++) cout<<audio[todel[i]].sname<<", ";
-                                            if (todel.size()>1) cout<<"and ";
-                                            cout<<audio[todel[todel.size()-1]].sname<<"? This action is irreversible. Input CONFIRM to confirm."<<endl;
-                                            string conf;
-                                            getline(cin,conf);
-                                            if (conf=="CONFIRM") {
-                                                for (ll i=todel.size()-1;i>=0;i--) audio.erase(audio.begin()+todel[i]);
-                                                sort(selaud.begin(),selaud.end());
-                                                for (ll i=selaud.size();i>=0;i++) {
-                                                    if (selaud[i]>=audio.size()) selaud.erase(selaud.begin()+i);
-                                                    i--;
-                                                }
-                                            }
-                                        } else if (songchoice=="1") {
-                                            cout<<"Sound disabled"<<endl;
-                                            sound=false;
-                                            break;
-                                        }
-                                    }
-                                    if (choosesounds) {
-                                        selaud.clear();
-                                        for (ll i=0;i<audio.size();i++) if (fc[i]) selaud.push_back(i);
-                                        break;
-                                    }
-                                }
-                                break;
-                            } else {
-                                cout<<"Sound enabled"<<endl;
-                                sound=true;
+                        libftest.close();
+                        if (dirlib) {
+                            libftest.open("/usr/local/lib/libirrklang.dylib");
+                            if (libftest.good()) {
+                                soundlib=true;
                             }
                         }
-                    } else {
-                        cout<<"Using sound requires the installation of external libraries. This will require an administrator password. Enter y to proceed."<<endl;
-                        string confins;
-                        getline(cin,confins);
-                        if (confins=="y"||confins=="Y") {
-                            ofstream sil(db+"tmp/sil.txt");
-                            sil<<"SILENCE";
-                            sil.close();
-                            removeWithinFolder(db+"tmp/");
-                            system(("open "+safespace(db+"soundsetup")).c_str());
-                            ifstream donetest;
+                        if (dirlib&&soundlib) {
                             while (true) {
-                                donetest.open(db+"tmp/installed.txt");
-                                if (donetest.good()) break;
-                                donetest.close();
-                                usleep(1e4);
+                                if (sound) {
+                                    while (true) {
+                                        cout<<"Current selectiion:";
+                                        if (selaud.size()==audio.size()) cout<<"All";
+                                        else if (selaud.size()==0) {
+                                            cout<<"None";
+                                        } else {
+                                            cout<<audio[selaud[0]].sname;
+                                            for (ll i=1;i<selaud.size();i++) {
+                                                cout<<", "<<audio[selaud[i]].sname;
+                                            }
+                                        }
+                                        bool soundcapped=true;
+                                        if (audio.size()<35) soundcapped=false;
+                                        cout<<endl<<"[1]Disable sound"<<endl;
+                                        if (!soundcapped) cout<<"[2]Add new sounds"<<endl;
+                                        cout<<"["<<3-soundcapped<<"]Delete sounds"<<endl<<"--------"<<endl<<"["<<4-soundcapped<<"]Select all"<<endl;
+                                        map<char, ll>schoice;
+                                        for (ll i=0;i<audio.size();i++) {
+                                            if (i+5-soundcapped<=9) {
+                                                cout<<"["<<i+5-soundcapped<<"]"<<audio[i].sname<<endl;
+                                                schoice[i+5-soundcapped+'0']=i+1;
+                                            } else {
+                                                schoice['A'+i-5-soundcapped]=i+1;
+                                                cout<<"["<<(char)('A'+i-5-soundcapped)<<"]"<<audio[i].sname<<endl;
+                                            }
+                                        }
+                                        cout<<"Select songs to play after a correct submission..."<<endl;
+                                        string songchoice;
+                                        getline(cin,songchoice);
+                                        bool fc[audio.size()];
+                                        bool choosesounds=true;
+                                        for (ll i=0;i<audio.size();i++) fc[i]=0;
+                                        for (ll i=0;i<songchoice.length();i++) {
+                                            if (songchoice[i]==4-soundcapped+'0') for (ll j=0;j<audio.size();j++) fc[j]=1;
+                                            else if (schoice[songchoice[i]]!=0) fc[schoice[songchoice[i]]-1]=1;
+                                            else if (songchoice[i]=='2') {
+                                                choosesounds=false;
+                                                cout<<"Alert! Song must be in WAV format."<<endl<<"Input the path of the song..."<<endl;
+                                                string newsoundpth;
+                                                getline(cin,newsoundpth);
+                                                nml(newsoundpth);
+                                                ifstream newsoundtest(newsoundpth);
+                                                if (newsoundtest.good()) {
+                                                    newsoundtest.close();
+                                                    cout<<"What is the name of the song?"<<endl;
+                                                    string songn;
+                                                    getline(cin,songn);
+                                                    string songf="";
+                                                    for (ll j=0;j<16;j++) songf+=randname[rand()%36];
+                                                    fcopy(newsoundpth,db+songf+".wav");
+                                                    audio.push_back({songf,songn});
+                                                    cout<<"Song "<<songn<<" imported successfully."<<endl;
+                                                } else cout<<"Error reading song!"<<endl;
+                                                //add new sounds
+                                                break;
+                                            } else if (songchoice[i]==3-soundcapped+'0') {
+                                                choosesounds=false;
+                                                for (ll i=0;i<audio.size();i++) {
+                                                    cout<<"[";
+                                                    i<9?cout<<i+1:cout<<(char)('A'+i-9);
+                                                    cout<<"]"<<audio[i].sname<<endl;
+                                                }
+                                                cout<<"What song do you want to delete?"<<endl;
+                                                string delschoice;
+                                                getline(cin,delschoice);
+                                                set<ll>delchoice;
+                                                for (ll i=0;i<delschoice.length();i++) delchoice.insert(delschoice[i]>='A'?delschoice[i]-'A'+10-1:delschoice[i]-'0'-1);
+                                                vector<ll>todel;
+                                                for (set<ll>::iterator i=delchoice.begin();i!=delchoice.end();i++) if (*i<audio.size()) todel.push_back(*i); else break;
+                                                if (todel.size()) cout<<"Are you sure you want to delete ";
+                                                for (ll i=0;i<todel.size()-1;i++) cout<<audio[todel[i]].sname<<", ";
+                                                if (todel.size()>1) cout<<"and ";
+                                                cout<<audio[todel[todel.size()-1]].sname<<"? This action is irreversible. Input CONFIRM to confirm."<<endl;
+                                                string conf;
+                                                getline(cin,conf);
+                                                if (conf=="CONFIRM") {
+                                                    for (ll i=todel.size()-1;i>=0;i--) audio.erase(audio.begin()+todel[i]);
+                                                    sort(selaud.begin(),selaud.end());
+                                                    for (ll i=selaud.size();i>=0;i++) {
+                                                        if (selaud[i]>=audio.size()) selaud.erase(selaud.begin()+i);
+                                                        i--;
+                                                    }
+                                                }
+                                            } else if (songchoice=="1") {
+                                                cout<<"Sound disabled"<<endl;
+                                                sound=false;
+                                                break;
+                                            }
+                                        }
+                                        if (choosesounds) {
+                                            selaud.clear();
+                                            for (ll i=0;i<audio.size();i++) if (fc[i]) selaud.push_back(i);
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                } else {
+                                    cout<<"Sound enabled"<<endl;
+                                    sound=true;
+                                }
                             }
-                            donetest.close();
-                            ifstream instest("/usr/local/lib/libirrklang.dylib");
-                            if (instest.good()) {
-                                cout<<"Sound enabled"<<endl;
-                                sound=true;
-                            } else cout<<"Install failed."<<endl;
-                            instest.close();
+                        } else {
+                            cout<<"Using sound requires the installation of external libraries. This will require an administrator password. Enter y to proceed."<<endl;
+                            string confins;
+                            getline(cin,confins);
+                            if (confins=="y"||confins=="Y") {
+                                ofstream sil(db+"tmp/sil.txt");
+                                sil<<"SILENCE";
+                                sil.close();
+                                removeWithinFolder(db+"tmp/");
+                                system(("open "+safespace(db+"soundsetup")).c_str());
+                                ifstream donetest;
+                                while (true) {
+                                    donetest.open(db+"tmp/installed.txt");
+                                    if (donetest.good()) break;
+                                    donetest.close();
+                                    usleep(1e4);
+                                }
+                                donetest.close();
+                                ifstream instest("/usr/local/lib/libirrklang.dylib");
+                                if (instest.good()) {
+                                    cout<<"Sound enabled"<<endl;
+                                    sound=true;
+                                } else cout<<"Install failed."<<endl;
+                                instest.close();
+                            }
                         }
+                        if (autosave) savedata();
+                    } else {
+                        cout<<"The Windows version of Homework does not support sound yet."<<endl;
                     }
-                    if (autosave) savedata();
                 } else if (setans=="5") {
                     if (autosave) {
                         cout<<"Autosave disabled."<<endl;
                         autosave=false;
                     } else {
                         if (asdisabled) {
-                            cout<<"Are you sure about disabling autosave? You may corrupt files. Input CONFIRM to confirm."<<endl;
+                            cout<<"Are you sure about enabling autosave? You may corrupt files. Input CONFIRM to confirm."<<endl;
                             string conf;
                             getline(cin,conf);
                             if (conf=="CONFIRM") {
@@ -1069,11 +1108,16 @@ int main() {
         } else if (to_string(homeansNum)==homeans&&homeansNum==prevID&&prevID!=-1) grp--;
         else if (to_string(homeansNum)==homeans&&homeansNum==nxtID&&nxtID!=-1) grp++;
         else if (to_string(homeansNum)==homeans&&homeansNum==jmpID&&jmpID!=-1) {
-            cout<<"Which page would you like to jump to? Current page:Page "<<grp+1<<" of "<<showMore.size()<<endl;
-            string jmpNum;
-            getline(cin,jmpNum);
-            ll jmpNumNum=atoll(jmpNum.c_str());
-            if (to_string(jmpNumNum)==jmpNum&&jmpNumNum>=1&&jmpNumNum<=showMore.size()) grp=jmpNumNum-1;
+            while (true) {
+                cout<<"Which page would you like to jump to? Current page:Page "<<grp+1<<" of "<<showMore.size()<<endl;
+                string jmpNum;
+                getline(cin,jmpNum);
+                ll jmpNumNum=atoll(jmpNum.c_str());
+                if (to_string(jmpNumNum)==jmpNum&&jmpNumNum>=1&&jmpNumNum<=showMore.size()) {
+                    grp=jmpNumNum-1;
+                    break;
+                } else cout<<"Jump number invalid!"<<endl;
+            }
         } else {
             string vtmp=homeans;
             transform(homeans.begin(),homeans.end(),vtmp.begin(),::tolower);
@@ -1123,6 +1167,85 @@ int main() {
                             for (ll j=0;j<16;j++) idout+=randname[rand()%36];
                             cout<<idout<<endl;
                         }
+                    }
+                } else if (vtmp=="make") {
+                    while (true) {
+                        cout<<"HWFX package maker. Example hierarchy:"<<endl<<"Add_One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment file's directory. Don't include a / at the end of your path."<<endl;
+                        string pkgpth;
+                        /* --------- testing --------- */
+//                        getline(cin,pkgpth);
+                        pkgpth="/Users/legitmichel777/Desktop/Add_One";
+                        /* --------- testing --------- */
+                        string outpth=pkgpth+".hwfx";
+                        bool gogogo=false;
+                        while (true) {
+                            ifstream testOverlap(outpth);
+                            bool goOn=false;
+                            if (testOverlap.good()) {
+                                while (true) {
+                                    cout<<"The file "<<outpth<<" already exists. Do you want to "<<endl<<"[1]Overwrite"<<endl<<"[2]Choose another path"<<endl<<"[3]Stop"<<endl;
+                                    string ovrlpdec;
+                                    getline(cin,ovrlpdec);
+                                    if (ovrlpdec=="1") {
+                                        goOn=true;
+                                        break;
+                                    } else if (ovrlpdec=="2") {
+                                        string rdcpkg=pkgpth;
+                                        while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                                        rdcpkg+=".hwfx";
+                                        cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
+                                        getline(cin,outpth);
+                                        outpth=outpth+"/"+rdcpkg;
+                                        testOverlap.close();
+                                        break;
+                                    } else if (ovrlpdec=="3") {
+                                        goOn=true;
+                                        gogogo=true;
+                                        break;
+                                    }
+                                }
+                            } else break;
+                            if (goOn) break;
+                        }
+                        if (gogogo) break;
+                        stringstream newPkg;
+                        newPkg<<"HwfxContents::StartPayload"<<endl<<"HwfxContents::Title"<<endl;
+                        ifstream rdpkg(pkgpth+"/title.txt");
+                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        rdpkg.close();
+                        newPkg<<"HwfxContents::Description"<<endl;
+                        rdpkg.open(pkgpth+"/description.txt");
+                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        rdpkg.close();
+                        newPkg<<"HwfxContents::InputDes"<<endl;
+                        rdpkg.open(pkgpth+"/in.txt");
+                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        rdpkg.close();
+                        newPkg<<"HwfxContents::OutputDes"<<endl;
+                        rdpkg.open(pkgpth+"/out.txt");
+                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        rdpkg.close();
+                        ll expkgs=1;
+                        while (true) {
+                            ifstream intst(pkgpth+"/exin"+to_string(expkgs)+".txt"),outtst(pkgpth+"/exout"+to_string(expkgs)+".txt");
+                            if (intst.good()&&outtst.good()) {
+                                expkgs++;
+                            } else if (intst.good()||outtst.good()) {
+                                if (intst.good()) cout<<"Error! Missing exout"<<to_string(expkgs)<<".txt to match existing exin"+to_string(expkgs)+".txt"<<endl;
+                                else cout<<"Error! Missing exin"<<to_string(expkgs)<<".txt to match existing exout"+to_string(expkgs)+".txt"<<endl;
+                                expkgs--;
+                                break;
+                            } else {
+                                expkgs--;
+                                break;
+                            }
+                        }
+                        /* --------- testing --------- */
+                        ofstream testOut("HelloWorld.txt");
+                        testOut<<newPkg.str();
+                        testOut.close();
+                        /* --------- testing --------- */
+                        break;
                     }
                 } else cout<<"Invalid response."<<endl;
             }
