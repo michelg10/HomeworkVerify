@@ -43,6 +43,8 @@
 		F077F318235D63210054FC47 /* acsound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = acsound.cpp; sourceTree = "<group>"; };
 		F077F31A235D64E90054FC47 /* highonlife.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = highonlife.cpp; sourceTree = "<group>"; };
 		F077F31B235D64E90054FC47 /* highonlife.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = highonlife.hpp; sourceTree = "<group>"; };
+		F079696323CEDEF400AA1217 /* aes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = aes.h; sourceTree = "<group>"; };
+		F079696423CEDF1900AA1217 /* aes_lookup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = aes_lookup.h; sourceTree = "<group>"; };
 		F0A7CC8E23117543007AB3DE /* cores.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cores.cpp; sourceTree = "<group>"; };
 		F0A7CC8F23117543007AB3DE /* cores.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = cores.hpp; sourceTree = "<group>"; };
 		F0A7CC9123117628007AB3DE /* gpphelper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = gpphelper.cpp; sourceTree = "<group>"; };
@@ -90,6 +92,8 @@
 			isa = PBXGroup;
 			children = (
 				F0447B77224A5D1900B57D98 /* main.cpp */,
+				F079696323CEDEF400AA1217 /* aes.h */,
+				F079696423CEDF1900AA1217 /* aes_lookup.h */,
 				F080189A224EFB4900F2B74D /* Resources */,
 			);
 			path = HomeworkVerify;

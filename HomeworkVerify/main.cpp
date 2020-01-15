@@ -7,6 +7,7 @@
 #include <queue>
 #include <cmath>
 #include <set>
+#include "aes.h"
 #include "openhelper.hpp"
 #include "cores.hpp"
 #include "gpphelper.hpp"
@@ -240,6 +241,7 @@ struct strWithInt {
 };
 void savedata() {
     ofstream out(db+"contents.dwt");
+    if (!out.good()) cout<<"Critical error! Error accessing contents.dwt save file!"<<endl;
     out<<"ACH"<<endl;
     for (ll i=0;i<easter.size();i++) out<<secret[i];
     out<<endl;
@@ -265,10 +267,10 @@ void nml(string &s) {
     }
 }
 void changelog() {
-    cout<<"What's changed in v1.5:"<<endl<<"Sandboxing for security"<<endl<<"Answer files"<<endl<<"Limit items"<<endl<<"Batch evaluation"<<endl<<"New cross platform file format:hwfx"<<"Bug fixes and improvements"<<endl;
+    cout<<"What's changed in v1.5:"<<endl<<"Sandboxing for security"<<endl<<"Answer files"<<endl<<"Limit items"<<endl<<"Batch evaluation"<<endl<<"New cross platform file format:hwfx"<<endl<<"Bug fixes and improvements"<<endl;
 }
 //MARK:MAIN
-ll pkgImport(ifstream &rdpkg, stringstream &newPkg) {
+ll pkgImport(ifstream &rdpkg, stringstream &newPkg, string impItm) {
     stringstream checkNef;
     if (rdpkg.good()) {
         checkNef<<rdpkg.rdbuf();
@@ -276,16 +278,17 @@ ll pkgImport(ifstream &rdpkg, stringstream &newPkg) {
         if (nef.find("HwfxContents::")==string::npos) {
             newPkg<<nef<<endl;
         } else {
-            cout<<"Error! Title file contains keyword \"HwfxContents::\"!"<<endl;
+            cout<<"Error! "<<impItm<<" file contains keyword \"HwfxContents::\"!"<<endl;
             return -1;
         }
     } else {
-        cout<<"Error! Title file missing! Make sure you have the right file hierarchy!"<<endl;
+        cout<<"Error! "<<impItm<<" file missing! Make sure you have the right file hierarchy!"<<endl;
         return -1;
     }
     return 0;
 }
 int main() {
+    unsigned char aesKey[32]={28,57,67,10,127,108,14,197,41,73,79,16,242,2,85,227,120,13,53,121,23,109,231,129,210,147,11,128,115,1,242,150};
     //TODO:Make helpers start on program launch. relaunch if helper is detected to be dead.
     //TODO:Add batch processing
     //TODO:Reconvert openhelper
@@ -337,9 +340,18 @@ int main() {
         easter.push_back({"Slap his thigh!","lightning","Lightning and the thunder..."});
         easter.push_back({"I'll do you every day.","homework","Oh yeah..."});
         easter.push_back({"Goose math!","3.16","Pi IS 3.16!"});
-        easter.push_back({"Escaping red blood cells!","Bleed","Rudolph's running nose..."});
+        easter.push_back({"Escaping red blood cells!","bleed","Rudolph's running nose..."});
         easter.push_back({"The mythical creature","unicorn","So horny..."});
         easter.push_back({"Greatest club of all time","c++ programming","Yee!"});
+        easter.push_back({"Best calculator","calculatorx","Powerful."});
+        easter.push_back({"VB sucks like VB","vb","One who sucks like VB"});
+    }
+    vector<string>tips;
+    if (true) {
+        tips.push_back("Type make into the main menu to create your own assignments!");
+        tips.push_back("If you have too many files, consider using keep assignments and limit items in settings!");
+        tips.push_back("Try setting multiple cores in settings to evaluate your assignments faster!");
+        tips.push_back("Type changelog into the main menu to view the changelog!");
     }
     //openssl enc -aes-256-cbc -K FB384BE6E7009275 -iv 755CA3572C3FAC78 -S 8C55A67258E39056
     clc();
@@ -379,13 +391,16 @@ int main() {
     }
     dbtest.close();
     db = "/Users/"+username+"/Library/Containers/com.mclm7.homework/";
-    dbtest.open(db+"contents.man");
+    dbtest.open(db+"contents.dwt");
     bool freshins=false;
+    bool newUsr=false;
     if (!dbtest.good()) {
+        newUsr=true;
         freshins=true;
         install(1);
-        ofstream mancreate(db+"contents.man");
+        ofstream mancreate(db+"contents.dwt");
         mancreate.close();
+        helperver=helpertar;
     }
     dbtest.close();
     //1.3 ONLY
@@ -412,6 +427,7 @@ int main() {
     bool impissue=false;
     bool impfsVers=false;
     ofstream rmsil(db+"tmp/sl.silent");
+    if (!rmsil.good()) cout<<"Error writing silent file to tmp"<<endl;
     rmsil<<"SILENCE!";
     rmsil.close();
     removeWithinFolder(db+"tmp/");
@@ -503,6 +519,12 @@ int main() {
                 *intcont[finkey]=atoll(contentsf[++i].c_str());
             } else if (strcont.count(finkey)) {
                 *strcont[finkey]=contentsf[++i];
+            } else if (finkey=="ACH") {
+                i++;
+                for (ll j=0;j<min(easter.size(),contentsf[i].size());j++) {
+                    if (contentsf[i][j]=='0') secret[j]=0;
+                    else if (contentsf[i][j]=='1') secret[j]=1;
+                }
             }
         }
     }
@@ -522,7 +544,7 @@ int main() {
     ofstream out(db+"db.txt");
     out<<db;
     out.close();
-    if (helperver!=helpertar) {
+    if (helperver!=helpertar&&!newUsr) {
         install(0);
         helperver=helpertar;
     }
@@ -583,7 +605,9 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to Homework(v1.5) for C++ Programming Club. Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl<<"--------"<<endl;
+        cout<<"Welcome to Homework(v1.5) for C++ Programming Club. Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        if (rand()%5==0) cout<<"Tip:"<<tips[rand()%tips.size()]<<endl;
+        if (data.size()) cout<<"--------"<<endl;
         sort(data.begin(),data.end(),cmp);
         bool containsNonK=false,containsK=false;
         for (ll i=0;i<data.size()&&(!containsNonK||!containsK);i++) {
@@ -631,27 +655,31 @@ int main() {
         }
         ll outcnt = 5;
         vector<ll>hwpoint;
-        for (ll i=0;i<showMore[grp].size();i++) {
-            if (showMore[grp][i].mtd!=-1) {
-                cout<<"["<<outcnt<<"]";
-                hwpoint.push_back(showMore[grp][i].mtd);
-                outcnt++;
+        if (data.size()) {
+            for (ll i=0;i<showMore[grp].size();i++) {
+                if (showMore[grp][i].mtd!=-1) {
+                    cout<<"["<<outcnt<<"]";
+                    hwpoint.push_back(showMore[grp][i].mtd);
+                    outcnt++;
+                }
+                cout<<showMore[grp][i].ply<<endl;
             }
-            cout<<showMore[grp][i].ply<<endl;
         }
         ll extended=outcnt;
         ll prevID=-1,nxtID=-1,jmpID=-1;
-        if (showMore.size()-1) {
-            cout<<"--------"<<endl<<"Page "<<grp+1<<" of "<<showMore.size()<<endl<<"["<<extended++<<"]Jump to page"<<endl;
-            jmpID=extended-1;
-        }
-        if (grp!=0) {
-            cout<<"["<<extended++<<"]Go to previous page"<<endl;
-            prevID=extended-1;
-        }
-        if (grp!=showMore.size()-1) {
-            cout<<"["<<extended++<<"]Go to next page"<<endl;
-            nxtID=extended-1;
+        if (showMore.size()>1) {
+            if (showMore.size()-1) {
+                cout<<"--------"<<endl<<"Page "<<grp+1<<" of "<<showMore.size()<<endl<<"["<<extended++<<"]Jump to page"<<endl;
+                jmpID=extended-1;
+            }
+            if (grp!=0) {
+                cout<<"["<<extended++<<"]Go to previous page"<<endl;
+                prevID=extended-1;
+            }
+            if (grp!=showMore.size()-1) {
+                cout<<"["<<extended++<<"]Go to next page"<<endl;
+                nxtID=extended-1;
+            }
         }
         string homeans;
         getline(cin,homeans);
@@ -668,6 +696,7 @@ int main() {
                 bool idfile=false;
                 if (pkgpth.size()>=6) {
                     if (pkgpth.substr(pkgpth.size()-6,6)==".hwpkg") {
+                        if (SYS==APPL) {
                         idfile=true;
                         //COPY OVER TO TMP
                         string newname="";
@@ -714,28 +743,140 @@ int main() {
                         removeWithinFolder(db+"tmp/");
                         if (autosave) savedata();
                         continue;
+                        } else cout<<"Error! HWPKG files can only opened in macOS versions of Homework!"<<endl;
                     }
                 }
                 if (pkgpth.size()>=3) {
                     if (pkgpth.substr(pkgpth.size()-3,3)==".hw") {
+                        if (SYS!=APPL) {
+                            cout<<"Error! HW files can only be opened in the macOS version of Homework!"<<endl;
+                        }
                         idfile=true;
+                        string newname="";
+                        for (ll i=0;i<16;i++) {
+                            newname+=randname[rand()%36];
+                        }
+                        fcopy(pkgpth,db+newname);
+                        string nm="HWSysUndefined";
+                        data.push_back({newname,0,nm,date()});
+                        //ID SCORE NAME DATE
+                        target = newname;
+                        vq=true;
+                        chosenID=data.size()-1;
                     }
                 }
                 if (!idfile) {
-                    cout<<"Unidentified file. Do not tamper with file extensions! Homework will take this as a Homework File."<<endl;
+                    if (pkgpth.size()>=5) {
+                        if (pkgpth.substr(pkgpth.size()-5,5)!=".hwfx") {
+                            cout<<"Unidentified file. Do not tamper with file extensions! Homework will take this as a hwfX file."<<endl;
+                        }
+                    } else cout<<"Unidentified file. Do not tamper with file extensions! Homework will take this as a hwfX file."<<endl;
+                    if (!idfile) {
+                        //undo encryption, encrypt again, then throw it into .ihwfx files. It has the exact same header format.
+                        ifstream importHwfx(pkgpth);
+                        vector<string>fHeader;
+                        while (true) {
+                            string impTmp;
+                            getline(importHwfx,impTmp);
+                            if (impTmp=="HwfxContents::PAYLOAD") break;
+                            else fHeader.push_back(impTmp);
+                        }
+                        stringstream transF;
+                        transF<<importHwfx.rdbuf();
+                        string fplyd=transF.str();
+                        transF.str("");
+                        importHwfx.close();
+                        unsigned char iv[16]={0};
+                        bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
+                        string fvers="";
+                        ll dtsz=0,ascnt=0;
+                        for (ll i=0;i<fHeader.size();i++) {
+                            if (fHeader[i]=="HwfxContents::FVERS") {
+                                if (i+1!=fHeader[i].size()) {
+                                    fvers=fHeader[++i];
+                                    gotFvers=true;
+                                }
+                            } else if (fHeader[i]=="HwfxContents::DATASIZE") {
+                                if (i+1!=fHeader.size()) {
+                                    dtsz=atoll(fHeader[++i].c_str());
+                                    gotDtsz=true;
+                                }
+                            } else if (fHeader[i]=="HwfxContents::IV") {
+                                for (ll j=i+1;j<=i+16;j++) {
+                                    iv[j-i-1]=atoll(fHeader[j].c_str());
+                                    if (j+1==fHeader.size()&&j-i-1!=15) {
+                                        cout<<"Error reading IV!"<<endl;
+                                        break;
+                                    }
+                                }
+                                i+=17;
+                                gotIv=true;
+                            } else if (fHeader[i]=="HwfxContents::PKGCNT") {
+                                if (i+1!=fHeader.size()) {
+                                    ascnt=atoll(fHeader[++i].c_str());
+                                    gotCnt=true;
+                                }
+                            }
+                        }
+                        if (!gotIv) cout<<"Error reading IV!"<<endl;
+                        if (!gotFvers) cout<<"Error reading file version!"<<endl;
+                        if (!gotDtsz) cout<<"Error reading file size!"<<endl;
+                        if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
+                        if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
+                        ll newLen=dtsz;
+                        newLen=ceil(dtsz/16.0)*16;
+                        unsigned char decPkg[newLen];
+                        for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
+                        for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
+                        aes_decrypt(decPkg, ceil(dtsz/16.0)*16, aesKey, 32, iv);
+                        for (ll i=0;i<dtsz;i++) transF<<decPkg[i];
+                        vector<string>reLd;
+                        string ft;
+                        while (getline(transF,ft)) reLd.push_back(ft);
+                        ll parsel=0;
+                        if (ascnt==1) vq=true;
+                        while (true) {
+                            if (parsel>=reLd.size()) break;
+                            ll parserr=reLd.size();
+                            cout<<"START RUN"<<endl;
+                            for (ll i=parsel+1;i<=reLd.size();i++) {
+                                if (reLd[i]=="HwfxContents::Payload") parserr=i;
+                            }
+                            stringstream dtplyd;
+                            string nm;
+                            for (ll i=parsel;i<parserr;i++) dtplyd<<reLd[i]<<endl;
+                            for (ll i=parsel;i<parserr;i++) {
+                                if (reLd[i]=="HwfxContents::Title"&&i+1<parserr) nm=reLd[i+1];
+                            }
+                            parsel=parserr+1;
+                            string newname="";
+                            for (ll i=0;i<16;i++) newname+=randname[rand()%36];
+                            ofstream miniF(db+newname);
+                            miniF<<"HwfxContents::"<<endl<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<"1"<<endl<<"HwfxContents::DATASIZE"<<endl<<dtplyd.str().size()<<endl<<"HwfxContents::IV"<<endl;
+                            unsigned char iv[16];
+                            for (ll i=0;i<16;i++) {
+                                iv[i]=rand()%256;
+                                miniF<<(int)iv[i]<<endl;
+                            }
+                            miniF<<"HwfxContents::PAYLOAD"<<endl;
+                            string plyd = dtplyd.str();
+                            ll newLen=plyd.size();
+                            newLen=ceil(newLen/16.0)*16;
+                            unsigned char newMsg[newLen];
+                            for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
+                            for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
+                            aes_encrypt(newMsg, newLen, aesKey, 32, iv);
+                            for (ll i=0;i<newLen;i++) miniF<<newMsg[i];
+                            miniF.close();
+                            
+                            data.push_back({newname,0,nm,date()});
+                            //ID SCORE NAME DATE
+                            target = newname;
+                            chosenID=data.size()-1;
+                        }
+                    }
                 }
-                //Move it
-                string newname="";
-                for (ll i=0;i<16;i++) {
-                    newname+=randname[rand()%36];
-                }
-                fcopy(pkgpth,db+newname);
-                string nm="HWSysUndefined";
-                data.push_back({newname,0,nm,date()});
-                //ID SCORE NAME DATE
-                target = newname;
-                vq=true;
-                chosenID=data.size()-1;
+                if (autosave) savedata();
             } else {
                 cout<<"Error reading package."<<endl;
             }
@@ -989,6 +1130,7 @@ int main() {
                             getline(cin,confins);
                             if (confins=="y"||confins=="Y") {
                                 ofstream sil(db+"tmp/sil.txt");
+                                if (!sil.good()) cout<<"Error writing silent file to tmp(SOUND)"<<endl;
                                 sil<<"SILENCE";
                                 sil.close();
                                 removeWithinFolder(db+"tmp/");
@@ -1136,18 +1278,22 @@ int main() {
                     changelog();
                 } else if (vtmp=="kill") return 0;
                 else if (vtmp=="crypt") {
-                    cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
-                    string cryf;
-                    getline(cin,cryf);
-                    nml(cryf);
-                    ifstream crytest(cryf);
-                    if (crytest.good()) {
-                        crytest.close();
-                        cout<<"Enter the output file."<<endl;
-                        string cryof;
-                        getline(cin,cryof);
-                        system((cmdenc+" -in "+safespace(cryf)+" -out "+safespace(cryof)).c_str());
-                    } else cout<<"File error!"<<endl;
+                    if (SYS==APPL) {
+                        cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
+                        string cryf;
+                        getline(cin,cryf);
+                        nml(cryf);
+                        ifstream crytest(cryf);
+                        if (crytest.good()) {
+                            crytest.close();
+                            cout<<"Enter the output file."<<endl;
+                            string cryof;
+                            getline(cin,cryof);
+                            system((cmdenc+" -in "+safespace(cryf)+" -out "+safespace(cryof)).c_str());
+                        } else cout<<"File error!"<<endl;
+                    } else {
+                        cout<<"Crypto system is only available on the Mac version of Homework."<<endl;
+                    }
                 } else if (vtmp=="clearf") {
                     cout<<"Clear all program files? This action is irreversible(Input CLEAR in all caps to confirm)"<<endl;
                     string clearall;
@@ -1169,70 +1315,110 @@ int main() {
                         }
                     }
                 } else if (vtmp=="make") {
+                    cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add_One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment's directory. Don't include a / at the end of your path."<<endl;
+                    string pkgpth;
+                    /* --------- testing --------- */
+                    //                        getline(cin,pkgpth);
+                    pkgpth="/Users/legitmichel777/Desktop/Add_One";
+                    /* --------- testing --------- */
+                    string outpth=pkgpth+".hwfx";
+                    bool gogogo=false;
                     while (true) {
-                        cout<<"HWFX package maker. Example hierarchy:"<<endl<<"Add_One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment file's directory. Don't include a / at the end of your path."<<endl;
-                        string pkgpth;
-                        /* --------- testing --------- */
-//                        getline(cin,pkgpth);
-                        pkgpth="/Users/legitmichel777/Desktop/Add_One";
-                        /* --------- testing --------- */
-                        string outpth=pkgpth+".hwfx";
-                        bool gogogo=false;
-                        while (true) {
-                            ifstream testOverlap(outpth);
-                            bool goOn=false;
-                            if (testOverlap.good()) {
-                                while (true) {
-                                    cout<<"The file "<<outpth<<" already exists. Do you want to "<<endl<<"[1]Overwrite"<<endl<<"[2]Choose another path"<<endl<<"[3]Stop"<<endl;
-                                    string ovrlpdec;
-                                    getline(cin,ovrlpdec);
-                                    if (ovrlpdec=="1") {
-                                        goOn=true;
-                                        break;
-                                    } else if (ovrlpdec=="2") {
-                                        string rdcpkg=pkgpth;
-                                        while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
-                                        rdcpkg+=".hwfx";
-                                        cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
-                                        getline(cin,outpth);
-                                        outpth=outpth+"/"+rdcpkg;
-                                        testOverlap.close();
-                                        break;
-                                    } else if (ovrlpdec=="3") {
-                                        goOn=true;
-                                        gogogo=true;
-                                        break;
-                                    }
+                        ifstream testOverlap(outpth);
+                        bool goOn=false;
+                        if (testOverlap.good()) {
+                            while (true) {
+                                cout<<"The file "<<outpth<<" already exists. Do you want to "<<endl<<"[1]Overwrite"<<endl<<"[2]Choose another path"<<endl<<"[3]Stop"<<endl;
+                                string ovrlpdec;
+                                getline(cin,ovrlpdec);
+                                if (ovrlpdec=="1") {
+                                    goOn=true;
+                                    break;
+                                } else if (ovrlpdec=="2") {
+                                    string rdcpkg=pkgpth;
+                                    while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                                    rdcpkg+=".hwfx";
+                                    cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
+                                    getline(cin,outpth);
+                                    outpth=outpth+"/"+rdcpkg;
+                                    testOverlap.close();
+                                    break;
+                                } else if (ovrlpdec=="3") {
+                                    goOn=true;
+                                    gogogo=true;
+                                    break;
+                                } else cout<<"Invalid response."<<endl;
+                            }
+                        } else {
+                            ofstream outTst(outpth);
+                            if (outTst.good()) break;
+                            else cout<<"Failed to write to "<<outpth<<". Do you want to "<<endl<<"[1]Change file path"<<endl<<"[2]Stop"<<endl;
+                            string badWrtRes;
+                            getline(cin,badWrtRes);
+                            while (true) {
+                                if (badWrtRes=="1") {
+                                    string rdcpkg=pkgpth;
+                                    while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                                    rdcpkg+=".hwfx";
+                                    cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
+                                    getline(cin,outpth);
+                                    outpth=outpth+"/"+rdcpkg;
+                                    break;
+                                } else {
+                                    gogogo=true;
+                                    break;
                                 }
-                            } else break;
-                            if (goOn) break;
+                            }
                         }
-                        if (gogogo) break;
+                        if (goOn) break;
+                    }
+                    string rdcpkg=pkgpth;
+                    while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                    if (gogogo) continue;
+                    stringstream masterPkg;
+                    ll contCnt=0;
+                    while (true) {
+                        string disTtl=rdcpkg;
+                        bool impFail=false;
                         stringstream newPkg;
-                        newPkg<<"HwfxContents::StartPayload"<<endl<<"HwfxContents::Title"<<endl;
+                        newPkg<<"HwfxContents::Payload"<<endl<<"HwfxContents::Title"<<endl;
                         ifstream rdpkg(pkgpth+"/title.txt");
-                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        if (pkgImport(rdpkg,newPkg,"Title")==-1) impFail=true;
+                        rdpkg.close();
+                        rdpkg.open(pkgpth+"/title.txt");
+                        if (rdpkg.good()) getline(rdpkg,disTtl);
                         rdpkg.close();
                         newPkg<<"HwfxContents::Description"<<endl;
                         rdpkg.open(pkgpth+"/description.txt");
-                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        if (pkgImport(rdpkg,newPkg,"Description")==-1) impFail=true;
                         rdpkg.close();
                         newPkg<<"HwfxContents::InputDes"<<endl;
                         rdpkg.open(pkgpth+"/in.txt");
-                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        if (pkgImport(rdpkg,newPkg,"Input")==-1) impFail=true;
                         rdpkg.close();
                         newPkg<<"HwfxContents::OutputDes"<<endl;
                         rdpkg.open(pkgpth+"/out.txt");
-                        if (pkgImport(rdpkg,newPkg)==-1) break;
+                        if (pkgImport(rdpkg,newPkg, "Output")==-1) impFail=true;
                         rdpkg.close();
                         ll expkgs=1;
                         while (true) {
                             ifstream intst(pkgpth+"/exin"+to_string(expkgs)+".txt"),outtst(pkgpth+"/exout"+to_string(expkgs)+".txt");
                             if (intst.good()&&outtst.good()) {
+                                newPkg<<"HwfxContents::ExampleInput"<<to_string(expkgs)<<endl;
+                                if (pkgImport(intst,newPkg,"Example input "+to_string(expkgs))==-1) {
+                                    impFail=true;
+                                    break;
+                                }
+                                newPkg<<"HwfxContents::ExampleOutput"<<to_string(expkgs)<<endl;
+                                if (pkgImport(outtst,newPkg,"Example output "+to_string(expkgs))==-1) {
+                                    impFail=true;
+                                    break;
+                                }
                                 expkgs++;
                             } else if (intst.good()||outtst.good()) {
                                 if (intst.good()) cout<<"Error! Missing exout"<<to_string(expkgs)<<".txt to match existing exin"+to_string(expkgs)+".txt"<<endl;
                                 else cout<<"Error! Missing exin"<<to_string(expkgs)<<".txt to match existing exout"+to_string(expkgs)+".txt"<<endl;
+                                impFail=true;
                                 expkgs--;
                                 break;
                             } else {
@@ -1240,13 +1426,76 @@ int main() {
                                 break;
                             }
                         }
-                        /* --------- testing --------- */
-                        ofstream testOut("HelloWorld.txt");
-                        testOut<<newPkg.str();
-                        testOut.close();
-                        /* --------- testing --------- */
-                        break;
+                        ll testSets=1;
+                        while (true) {
+                            ifstream intst(pkgpth+"/in"+to_string(testSets)+".txt"),outtst(pkgpth+"/out"+to_string(testSets)+".txt");
+                            if (intst.good()&&outtst.good()) {
+                                newPkg<<"HwfxContents::InputSet"<<to_string(testSets)<<endl;
+                                if (pkgImport(intst,newPkg,"Input "+to_string(testSets))==-1) {
+                                    impFail=true;
+                                    break;
+                                }
+                                newPkg<<"HwfxContents::OutputSet"<<to_string(testSets)<<endl;
+                                if (pkgImport(outtst,newPkg,"Output "+to_string(testSets))==-1) {
+                                    impFail=true;
+                                    break;
+                                }
+                                testSets++;
+                            } else if (intst.good()||outtst.good()) {
+                                if (intst.good()) cout<<"Error! Missing out"<<to_string(expkgs)<<".txt to match existing in"+to_string(expkgs)+".txt"<<endl;
+                                else cout<<"Error! Missing in"<<to_string(expkgs)<<".txt to match existing out"+to_string(expkgs)+".txt"<<endl;
+                                impFail=true;
+                                testSets--;
+                                break;
+                            } else {
+                                testSets--;
+                                break;
+                            }
+                        }
+                        if (impFail) cout<<"Importing of "<<disTtl<<" failed."<<endl;
+                        else {
+                            cout<<disTtl<<" successfully imported."<<endl;
+                            masterPkg<<newPkg.str();
+                            contCnt++;
+                        }
+                        cout<<"Would you like to add another file to the package?"<<endl<<"[1]Yes"<<endl<<"[2]No"<<endl;
+                        string doItAgain;
+                        while (true) {
+                            getline(cin,doItAgain);
+                            if (doItAgain!="1"&&doItAgain!="2") cout<<"Invalid response."<<endl;
+                            else break;
+                        }
+                        if (doItAgain=="1") {
+                            cout<<"Please input the assignment's directory. Don't include a / at the end of your path."<<endl;
+                            getline(cin,pkgpth);
+                        } else break;
                     }
+                    /* --------- testing --------- */
+                    ofstream testOut("HelloWorld.txt");
+                    testOut<<masterPkg.str();
+                    testOut.close();
+                    /* --------- testing --------- */
+                    if (contCnt>0) {
+                        ofstream fxOut(outpth);
+                        if (fxOut.good()) {
+                            fxOut<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<contCnt<<endl<<"HwfxContents::DATASIZE"<<endl<<masterPkg.str().size()<<endl<<"HwfxContents::IV"<<endl;
+                            unsigned char iv[16];
+                            for (ll i=0;i<16;i++) {
+                                iv[i]=rand()%256;
+                                fxOut<<(int)iv[i]<<endl;
+                            }
+                            fxOut<<"HwfxContents::PAYLOAD"<<endl;
+                            string plyd = masterPkg.str();
+                            ll newLen=plyd.size();
+                            newLen=ceil(newLen/16.0)*16;
+                            unsigned char newMsg[newLen];
+                            for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
+                            for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
+                            aes_encrypt(newMsg, newLen, aesKey, 32, iv);
+                            for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
+                        } else cout<<"Unable to write to out file."<<endl;
+                        fxOut.close();
+                    } else cout<<"Error! No assignments loaded!"<<endl;
                 } else cout<<"Invalid response."<<endl;
             }
         }
@@ -1257,132 +1506,211 @@ int main() {
                 cout<<"Error! Homework file missing."<<endl;
                 continue;
             }
-            //DECRYPT
-            string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+target)+" -out "+safespace(db+"tmp/"+target);
-            system(denccmd.c_str());
-            //OPEN EM
-            system(("unzip -o -qq "+safespace(db+"tmp/"+target)+" -d "+safespace(db+"tmp/"+target+'e')).c_str());
-            //READ EM
-            ifstream qread(db+"tmp/"+target+"e/description.txt");
+            string hwfxVerf;
+            bundltest>>hwfxVerf;
+            bundltest.close();
+            
             vector<string>probdes;
-            if (qread.good()) {
-                while (!qread.eof()) {
-                    string qreadtmp;
-                    getline(qread,qreadtmp);
-                    probdes.push_back(qreadtmp);
-                }
-            } else {
-                probdes.push_back("File error!");
-            }
-            qread.close();
             string probname;
-            qread.open(db+"tmp/"+target+"e/title.txt");
-            getline(qread,probname);
-            qread.close();
-            if (data[chosenID].name=="HWSysUndefined") {
-                data[chosenID].name=probname;
-                if (autosave) savedata();
-            }
-            qread.open(db+"tmp/"+target+"e/in.txt");
             vector<string>probin;
-            if (qread.good()) {
-                while (!qread.eof()) {
-                    string qreadtmp;
-                    getline(qread,qreadtmp);
-                    probin.push_back(qreadtmp);
-                }
-            } else {
-                probin.push_back("File error!");
-            }
-            qread.close();
             vector<string>probout;
-            qread.open(db+"tmp/"+target+"e/out.txt");
-            if (qread.good()) {
-                while (!qread.eof()) {
-                    string qreadtmp;
-                    getline(qread,qreadtmp);
-                    probout.push_back(qreadtmp);
+            vector<vector<string>>outex;
+            vector<vector<string>>outdata;
+            vector<vector<string>>indata;
+            ll ex = 1;
+            ll dtpt = 1;
+            vector<vector<string>>inex;
+            if (hwfxVerf=="HwfxContents::") {
+                ifstream rd(db+target);
+                vector<string>fHeader;
+                while (true) {
+                    string impTmp;
+                    getline(rd,impTmp);
+                    if (impTmp=="HwfxContents::PAYLOAD") break;
+                    else fHeader.push_back(impTmp);
+                }
+                stringstream transF;
+                transF<<rd.rdbuf();
+                string fplyd=transF.str();
+                transF.str("");
+                rd.close();
+                unsigned char iv[16]={0};
+                bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
+                string fvers="";
+                ll dtsz=0,ascnt=0;
+                for (ll i=0;i<fHeader.size();i++) {
+                    if (fHeader[i]=="HwfxContents::FVERS") {
+                        if (i+1!=fHeader[i].size()) {
+                            fvers=fHeader[++i];
+                            gotFvers=true;
+                        }
+                    } else if (fHeader[i]=="HwfxContents::DATASIZE") {
+                        if (i+1!=fHeader.size()) {
+                            dtsz=atoll(fHeader[++i].c_str());
+                            gotDtsz=true;
+                        }
+                    } else if (fHeader[i]=="HwfxContents::IV") {
+                        for (ll j=i+1;j<=i+16;j++) {
+                            iv[j-i-1]=atoll(fHeader[j].c_str());
+                            if (j+1==fHeader.size()&&j-i-1!=15) {
+                                cout<<"Error reading IV!"<<endl;
+                                break;
+                            }
+                        }
+                        i+=17;
+                        gotIv=true;
+                    } else if (fHeader[i]=="HwfxContents::PKGCNT") {
+                        if (i+1!=fHeader.size()) {
+                            ascnt=atoll(fHeader[++i].c_str());
+                            gotCnt=true;
+                        }
+                    }
+                }
+                if (!gotIv) cout<<"Error reading IV!"<<endl;
+                if (!gotFvers) cout<<"Error reading file version!"<<endl;
+                if (!gotDtsz) cout<<"Error reading file size!"<<endl;
+                if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
+                if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
+                ll newLen=dtsz;
+                newLen=ceil(dtsz/16.0)*16;
+                unsigned char decPkg[newLen];
+                for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
+                for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
+                aes_decrypt(decPkg, ceil(dtsz/16.0)*16, aesKey, 32, iv);
+                for (ll i=0;i<dtsz;i++) transF<<decPkg[i];
+                vector<string>reLd;
+                string ft;
+                while (getline(transF,ft)) reLd.push_back(ft);
+                //read in all except exin and inset
+                //use maps to verify exin and inset
+                //then read
+                for (ll i=1;i<reLd.size();i++) {
+                    if (reLd[i]=="HwfxContentws::Title") {
+                        for (ll j=i+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) {
+                            
+                        }
+                    }
                 }
             } else {
-                probout.push_back("File error!");
-            }
-            qread.close();
-            ll ex = 1;
-            vector<vector<string>>inex;
-            while (true) {
-                qread.open(db+"tmp/"+target+"e/exin"+to_string(ex)+".txt");
-                if (qread.good()) {
-                    vector<string>exrip;
-                    while (!qread.eof()) {
-                        string rdtmp;
-                        getline(qread,rdtmp);
-                        exrip.push_back(rdtmp);
+                if (SYS==APPL) {
+                    //DECRYPT
+                    string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+target)+" -out "+safespace(db+"tmp/"+target);
+                    system(denccmd.c_str());
+                    //OPEN EM
+                    system(("unzip -o -qq "+safespace(db+"tmp/"+target)+" -d "+safespace(db+"tmp/"+target+'e')).c_str());
+                    //READ EM
+                    ifstream qread(db+"tmp/"+target+"e/description.txt");
+                    if (qread.good()) {
+                        while (!qread.eof()) {
+                            string qreadtmp;
+                            getline(qread,qreadtmp);
+                            probdes.push_back(qreadtmp);
+                        }
+                    } else {
+                        probdes.push_back("File error!");
                     }
-                    inex.push_back(exrip);
-                } else {
-                    break;
-                }
-                ex++;
-                qread.close();
-            }
-            ex = 1;
-            vector<vector<string>>outex;
-            while (true) {
-                qread.open(db+"tmp/"+target+"e/exout"+to_string(ex)+".txt");
-                if (qread.good()) {
-                    vector<string>exrip;
-                    while (!qread.eof()) {
-                        string rdtmp;
-                        getline(qread,rdtmp);
-                        exrip.push_back(rdtmp);
+                    qread.close();
+                    qread.open(db+"tmp/"+target+"e/title.txt");
+                    getline(qread,probname);
+                    qread.close();
+                    if (data[chosenID].name=="HWSysUndefined") {
+                        data[chosenID].name=probname;
+                        if (autosave) savedata();
                     }
-                    outex.push_back(exrip);
-                } else {
-                    break;
-                }
-                ex++;
-                qread.close();
-            }
-            ex--;
-            ll dtpt = 1;
-            vector<vector<string>>indata;
-            while (true) {
-                qread.open(db+"tmp/"+target+"e/in"+to_string(dtpt)+".txt");
-                if (qread.good()) {
-                    vector<string>datarip;
-                    while (!qread.eof()) {
-                        string rdtmp;
-                        getline(qread,rdtmp);
-                        datarip.push_back(rdtmp);
+                    qread.open(db+"tmp/"+target+"e/in.txt");
+                    if (qread.good()) {
+                        while (!qread.eof()) {
+                            string qreadtmp;
+                            getline(qread,qreadtmp);
+                            probin.push_back(qreadtmp);
+                        }
+                    } else {
+                        probin.push_back("File error!");
                     }
-                    indata.push_back(datarip);
-                } else {
-                    break;
-                }
-                dtpt++;
-                qread.close();
-            }
-            dtpt = 1;
-            vector<vector<string>>outdata;
-            while (true) {
-                qread.open(db+"tmp/"+target+"e/out"+to_string(dtpt)+".txt");
-                if (qread.good()) {
-                    vector<string>datarip;
-                    while (!qread.eof()) {
-                        string rdtmp;
-                        getline(qread,rdtmp);
-                        datarip.push_back(rdtmp);
+                    qread.close();
+                    qread.open(db+"tmp/"+target+"e/out.txt");
+                    if (qread.good()) {
+                        while (!qread.eof()) {
+                            string qreadtmp;
+                            getline(qread,qreadtmp);
+                            probout.push_back(qreadtmp);
+                        }
+                    } else {
+                        probout.push_back("File error!");
                     }
-                    outdata.push_back(datarip);
-                } else {
-                    break;
-                }
-                dtpt++;
-                qread.close();
+                    qread.close();
+                    while (true) {
+                        qread.open(db+"tmp/"+target+"e/exin"+to_string(ex)+".txt");
+                        if (qread.good()) {
+                            vector<string>exrip;
+                            while (!qread.eof()) {
+                                string rdtmp;
+                                getline(qread,rdtmp);
+                                exrip.push_back(rdtmp);
+                            }
+                            inex.push_back(exrip);
+                        } else {
+                            break;
+                        }
+                        ex++;
+                        qread.close();
+                    }
+                    ex = 1;
+                    while (true) {
+                        qread.open(db+"tmp/"+target+"e/exout"+to_string(ex)+".txt");
+                        if (qread.good()) {
+                            vector<string>exrip;
+                            while (!qread.eof()) {
+                                string rdtmp;
+                                getline(qread,rdtmp);
+                                exrip.push_back(rdtmp);
+                            }
+                            outex.push_back(exrip);
+                        } else {
+                            break;
+                        }
+                        ex++;
+                        qread.close();
+                    }
+                    ex--;
+                    while (true) {
+                        qread.open(db+"tmp/"+target+"e/in"+to_string(dtpt)+".txt");
+                        if (qread.good()) {
+                            vector<string>datarip;
+                            while (!qread.eof()) {
+                                string rdtmp;
+                                getline(qread,rdtmp);
+                                datarip.push_back(rdtmp);
+                            }
+                            indata.push_back(datarip);
+                        } else {
+                            break;
+                        }
+                        dtpt++;
+                        qread.close();
+                    }
+                    dtpt = 1;
+                    while (true) {
+                        qread.open(db+"tmp/"+target+"e/out"+to_string(dtpt)+".txt");
+                        if (qread.good()) {
+                            vector<string>datarip;
+                            while (!qread.eof()) {
+                                string rdtmp;
+                                getline(qread,rdtmp);
+                                datarip.push_back(rdtmp);
+                            }
+                            outdata.push_back(datarip);
+                        } else {
+                            break;
+                        }
+                        dtpt++;
+                        qread.close();
+                    }
+                    dtpt--;
+                    //DELETE EM
+                    removeWithinFolder(db+"tmp/");
+                } else cout<<"Error! HW files can only be opened in the macOS version of Homework!"<<endl;
             }
-            dtpt--;
-            //DELETE EM
-            removeWithinFolder(db+"tmp/");
             while (true) {
                 cout<<endl<<probname<<endl<<"Your current score:"<<data[chosenID].score<<endl<<"--------"<<endl<<"Problem description:"<<endl;
                 for (ll i=0;i<probdes.size();i++) {
@@ -1435,6 +1763,7 @@ int main() {
                 getline(cin,hwsubans);
                 if (hwsubans=="1"||(anslock&&hwsubans==to_string(ansfclc))) {
                     ofstream silence(db+"tmp/sl.silence");
+                    if (!silence.good()) cout<<"Critical error! Error accessing TMP"<<endl;
                     silence<<"Silent!";
                     silence.close();
                     removeWithinFolder(db+"tmp/");
@@ -1478,16 +1807,19 @@ int main() {
                                 //Write question number
                                 //Write to the bridge
                                 ofstream foldout(db+"tmp/pth.bridge");
+                                if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in tmp."<<endl;
                                 foldout<<i;
                                 foldout.close();
                                 //Write in files
                                 foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
+                                if (!foldout.good()) cout<<"Critical error! Error accessing in.txt in "<<to_string(i)<<endl;
                                 if (indata[curtask-1].size()!=0) foldout<<indata[curtask-1][0];
                                 for (ll j=1;j<indata[curtask-1].size();j++) {
                                     foldout<<endl<<indata[curtask-1][j];
                                 }
                                 foldout.close();
                                 foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<"."<<endl;
                                 foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
                                 foldout.close();
                                 //Copy over openhelper
@@ -1506,6 +1838,7 @@ int main() {
                                 }
                                 timer[i-1]=chrono::high_resolution_clock::now();
                                 ofstream cle(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                if (!cle.good()) cout<<"Critical error! Error clearing path bridge in "<<i<<"."<<endl;
                                 cle.close();
                             }
                             bool mainsig[folders];
@@ -1537,8 +1870,10 @@ int main() {
                                     if (mainsig[i-1]) { //if one of them are available...
                                         mainsig[i-1]=false;
                                         ofstream cle(db+"tmp/"+to_string(i)+"/main.signal");
+                                        if (!cle.good()) cout<<"Critical error! Error clearing main.signal in "<<i<<endl;
                                         cle.close();
                                         cle.open(db+"tmp/"+to_string(i)+"/ini.signal");
+                                        if (!cle.good()) cout<<"Critical error! Error clearing ini.signal in "<<i<<endl;
                                         cle.close();
                                         ll curtask=rmtasks.front();
                                         rmtasks.pop();
@@ -1546,6 +1881,7 @@ int main() {
                                         //Write in files
                                         ofstream foldout;
                                         foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
+                                        if (!foldout.good()) cout<<"Critical error! Error accessing in.txt in "<<i<<endl;
                                         if (indata[curtask-1].size()!=0) foldout<<indata[curtask-1][0];
                                         for (ll j=1;j<indata[curtask-1].size();j++) {
                                             foldout<<endl<<indata[curtask-1][j];
@@ -1553,6 +1889,7 @@ int main() {
                                         foldout.close();
                                         //Write to the bridge
                                         foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                        if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<endl;
                                         foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
                                         foldout.close();
                                         //Wait for ini.signal
@@ -1573,6 +1910,7 @@ int main() {
                             }
                             for (ll i=1;i<=folders;i++) {
                                 ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
                                 stopsig<<"STOP";
                                 stopsig.close();
                             }
@@ -1608,7 +1946,8 @@ int main() {
                             ll timeres[dtpt];
                             for (ll i=1;i<=dtpt;i++) {
                                 ifstream timeread(db+"tmp/time"+to_string(i)+".txt");
-                                timeread>>timeres[i-1];
+                                if (!timeread.good()) timeres[i-1]=10000;
+                                else timeread>>timeres[i-1];
                                 timeread.close();
                             }
                             ll correct=0;
@@ -1660,9 +1999,7 @@ int main() {
                             }
                             removeWithinFolder(db+"tmp/");
                             ll score = round(((ld)correct/dtpt)*100.0);
-                            if (data[chosenID].score>score) {
-                                cout<<"Your submission score:"<<score<<endl;
-                            }
+                            if (data[chosenID].score>score) cout<<"Your submission score:"<<score<<endl;
                             data[chosenID].score=max(data[chosenID].score,score);
                             cout<<"Your current score:"<<data[chosenID].score<<endl;
                             if (score==100) {
