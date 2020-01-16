@@ -63,6 +63,8 @@ void inAppLaunch(string s,string args) {
 void clc() {
     if (SYS==APPL) {
         system("clear");
+    } else if (SYS==WIN) {
+        system("cls");
     }
 }
 void removeWithinFolder(string pathWithSlash) {
@@ -190,7 +192,7 @@ string cmdenc = "openssl enc -aes-256-cbc -K "+key+" -iv "+iv+" -S "+salt;
 ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers;
 string lockedf,vers,expvers;;
 bool cmp(hw const &a, hw const &b) {
-//    cout<<"COMPARING "<<a.name<<' '<<b.name<<endl;
+    //    cout<<"COMPARING "<<a.name<<' '<<b.name<<endl;
     if (srtmode==1) return a.name<b.name;
     else if (srtmode==2) return a.name>b.name;
     else if (srtmode==3) {
@@ -231,6 +233,10 @@ map<string,string*>strcont;
 map<string,vector<string>>structref;
 struct soundlog {
     string fname,sname;
+};
+struct dtCont {
+    ll cnt;
+    ll ipos,opos;
 };
 bool secret[100];
 vector<soundlog>audio;
@@ -290,7 +296,6 @@ ll pkgImport(ifstream &rdpkg, stringstream &newPkg, string impItm) {
 int main() {
     unsigned char aesKey[32]={28,57,67,10,127,108,14,197,41,73,79,16,242,2,85,227,120,13,53,121,23,109,231,129,210,147,11,128,115,1,242,150};
     //TODO:Make helpers start on program launch. relaunch if helper is detected to be dead.
-    //TODO:Add batch processing
     //TODO:Reconvert openhelper
     //TODO:Add search
     intcont["SOUND"]=&sound;
@@ -352,6 +357,7 @@ int main() {
         tips.push_back("If you have too many files, consider using keep assignments and limit items in settings!");
         tips.push_back("Try setting multiple cores in settings to evaluate your assignments faster!");
         tips.push_back("Type changelog into the main menu to view the changelog!");
+        tips.push_back("Type the name of a question into the main menu!");
     }
     //openssl enc -aes-256-cbc -K FB384BE6E7009275 -iv 755CA3572C3FAC78 -S 8C55A67258E39056
     clc();
@@ -594,6 +600,9 @@ int main() {
     }
     ll grp=0;
     vector<vector<strWithInt>>showMore;
+    //launch helpers
+    cout<<"Launching helpers..."<<endl;
+    
     while (true) {
         ll chosenID=0;
         string target;
@@ -697,52 +706,52 @@ int main() {
                 if (pkgpth.size()>=6) {
                     if (pkgpth.substr(pkgpth.size()-6,6)==".hwpkg") {
                         if (SYS==APPL) {
-                        idfile=true;
-                        //COPY OVER TO TMP
-                        string newname="";
-                        for (ll i=0;i<16;i++) {
-                            newname+=randname[rand()%36];
-                        }
-                        fcopy(pkgpth, db+"tmp/"+newname);
-                        //UNZIP
-                        system(("unzip -o -qq "+safespace(db+"tmp/"+newname)+" -d "+safespace(db+"tmp/"+newname+'u')).c_str());
-                        //Read contents file
-                        vector<string>pkgcontent;
-                        ifstream pkgcont(db+"tmp/"+newname+"u/contents.man");
-                        if (pkgcont.good()) {
-                            while (!pkgcont.eof()) {
-                                string pkgconttmp;
-                                getline(pkgcont,pkgconttmp);
-                                pkgcontent.push_back(pkgconttmp);
+                            idfile=true;
+                            //COPY OVER TO TMP
+                            string newname="";
+                            for (ll i=0;i<16;i++) {
+                                newname+=randname[rand()%36];
                             }
-                            pkgcont.close();
-                            for (ll i=0;i<pkgcontent.size();i++) {
-                                string newnm="";
-                                ifstream pkgptverf(db+"tmp/"+newname+"u/"+pkgcontent[i]);
-                                if (pkgptverf.good()) {
+                            fcopy(pkgpth, db+"tmp/"+newname);
+                            //UNZIP
+                            system(("unzip -o -qq "+safespace(db+"tmp/"+newname)+" -d "+safespace(db+"tmp/"+newname+'u')).c_str());
+                            //Read contents file
+                            vector<string>pkgcontent;
+                            ifstream pkgcont(db+"tmp/"+newname+"u/contents.man");
+                            if (pkgcont.good()) {
+                                while (!pkgcont.eof()) {
+                                    string pkgconttmp;
+                                    getline(pkgcont,pkgconttmp);
+                                    pkgcontent.push_back(pkgconttmp);
+                                }
+                                pkgcont.close();
+                                for (ll i=0;i<pkgcontent.size();i++) {
                                     string newnm="";
-                                    for (ll i=0;i<16;i++) newnm+=randname[rand()%36];
-                                    fcopy(db+"tmp/"+newname+"u/"+pkgcontent[i],db+newnm);
-                                    string pkgpeeknm;
-                                    //PEEK AT PACKAGE TO LOOK AT NAME
-                                    string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+newnm)+" -out "+safespace(db+"tmp/"+newnm);
-                                    system(denccmd.c_str());
-                                    //OPEN EM
-                                    system(("unzip -o -qq "+safespace(db+"tmp/"+newnm)+" -d "+safespace(db+"tmp/"+newnm+'e')).c_str());
-                                    ifstream hwfnmrd(db+"tmp/"+newnm+"e/title.txt");
-                                    string hwfnm;
-                                    getline(hwfnmrd,hwfnm);
-                                    hwfnmrd.close();
-                                    data.push_back({newnm,0,hwfnm,date()});
-                                } else cout<<"Missing Homework file!"<<endl;
+                                    ifstream pkgptverf(db+"tmp/"+newname+"u/"+pkgcontent[i]);
+                                    if (pkgptverf.good()) {
+                                        string newnm="";
+                                        for (ll i=0;i<16;i++) newnm+=randname[rand()%36];
+                                        fcopy(db+"tmp/"+newname+"u/"+pkgcontent[i],db+newnm);
+                                        string pkgpeeknm;
+                                        //PEEK AT PACKAGE TO LOOK AT NAME
+                                        string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+newnm)+" -out "+safespace(db+"tmp/"+newnm);
+                                        system(denccmd.c_str());
+                                        //OPEN EM
+                                        system(("unzip -o -qq "+safespace(db+"tmp/"+newnm)+" -d "+safespace(db+"tmp/"+newnm+'e')).c_str());
+                                        ifstream hwfnmrd(db+"tmp/"+newnm+"e/title.txt");
+                                        string hwfnm;
+                                        getline(hwfnmrd,hwfnm);
+                                        hwfnmrd.close();
+                                        data.push_back({newnm,0,hwfnm,date()});
+                                    } else cout<<"Missing Homework file!"<<endl;
+                                }
+                            } else {
+                                cout<<"Unexpected error:Missing contents file!"<<endl;
+                                pkgcont.close();
                             }
-                        } else {
-                            cout<<"Unexpected error:Missing contents file!"<<endl;
-                            pkgcont.close();
-                        }
-                        removeWithinFolder(db+"tmp/");
-                        if (autosave) savedata();
-                        continue;
+                            removeWithinFolder(db+"tmp/");
+                            if (autosave) savedata();
+                            continue;
                         } else cout<<"Error! HWPKG files can only opened in macOS versions of Homework!"<<endl;
                     }
                 }
@@ -838,7 +847,6 @@ int main() {
                         while (true) {
                             if (parsel>=reLd.size()) break;
                             ll parserr=reLd.size();
-                            cout<<"START RUN"<<endl;
                             for (ll i=parsel+1;i<=reLd.size();i++) {
                                 if (reLd[i]=="HwfxContents::Payload") parserr=i;
                             }
@@ -1317,10 +1325,7 @@ int main() {
                 } else if (vtmp=="make") {
                     cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add_One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment's directory. Don't include a / at the end of your path."<<endl;
                     string pkgpth;
-                    /* --------- testing --------- */
-                    //                        getline(cin,pkgpth);
-                    pkgpth="/Users/legitmichel777/Desktop/Add_One";
-                    /* --------- testing --------- */
+                    getline(cin,pkgpth);
                     string outpth=pkgpth+".hwfx";
                     bool gogogo=false;
                     while (true) {
@@ -1470,11 +1475,6 @@ int main() {
                             getline(cin,pkgpth);
                         } else break;
                     }
-                    /* --------- testing --------- */
-                    ofstream testOut("HelloWorld.txt");
-                    testOut<<masterPkg.str();
-                    testOut.close();
-                    /* --------- testing --------- */
                     if (contCnt>0) {
                         ofstream fxOut(outpth);
                         if (fxOut.good()) {
@@ -1495,8 +1495,21 @@ int main() {
                             for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
                         } else cout<<"Unable to write to out file."<<endl;
                         fxOut.close();
-                    } else cout<<"Error! No assignments loaded!"<<endl;
-                } else cout<<"Invalid response."<<endl;
+                        cout<<"hwfX file created at "<<outpth<<endl;
+                    } else cout<<"No assignments loaded! No file created."<<endl;
+                } else {
+                    for (ll i=0;i<data.size();i++) {
+                        string cmpTmp=data[i].name;
+                        transform(cmpTmp.begin(),cmpTmp.end(),cmpTmp.begin(),::tolower);
+                        if (vtmp==cmpTmp) {
+                            chosenID=i;
+                            target=data[chosenID].id;
+                            vq=true;
+                        }
+                    }
+                    if (!vq) cout<<"Invalid response."<<endl;
+                }
+                clc();
             }
         }
         if (vq) {
@@ -1511,14 +1524,12 @@ int main() {
             bundltest.close();
             
             vector<string>probdes;
-            string probname;
+            string probname="";
             vector<string>probin;
             vector<string>probout;
             vector<vector<string>>outex;
             vector<vector<string>>outdata;
             vector<vector<string>>indata;
-            ll ex = 1;
-            ll dtpt = 1;
             vector<vector<string>>inex;
             if (hwfxVerf=="HwfxContents::") {
                 ifstream rd(db+target);
@@ -1584,15 +1595,67 @@ int main() {
                 //read in all except exin and inset
                 //use maps to verify exin and inset
                 //then read
-                for (ll i=1;i<reLd.size();i++) {
+                for (ll i=0;i<reLd.size();i++) {
                     if (reLd[i]=="HwfxContentws::Title") {
-                        for (ll j=i+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) {
-                            
-                        }
+                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probname=probname+reLd[i];
+                    } else if (reLd[i]=="HwfxContents::Description") {
+                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probdes.push_back(reLd[i]);
+                    } else if (reLd[i]=="HwfxContents::InputDes") {
+                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probin.push_back(reLd[i]);
+                    } else if (reLd[i]=="HwfxContents::OutputDes") {
+                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probout.push_back(reLd[i]);
                     }
+                }
+                map<ll,dtCont>exCnt;
+                map<ll,dtCont>stCnt;
+                map<ll,dtCont>stPos;
+                for (ll i=0;i<reLd.size();i++) {
+                    if (reLd[i].find("HwfxContents::ExampleInput")!=string::npos) {
+                        exCnt[atoll(reLd[i].substr(26).c_str())].cnt++;
+                        exCnt[atoll(reLd[i].substr(26).c_str())].ipos=i;
+                    } else if (reLd[i].find("HwfxContents::ExampleOutput")!=string::npos) {
+                        exCnt[atoll(reLd[i].substr(27).c_str())].cnt++;
+                        exCnt[atoll(reLd[i].substr(27).c_str())].opos=i;
+                    } else if (reLd[i].find("HwfxContents::InputSet")!=string::npos) {
+                        stCnt[atoll(reLd[i].substr(22).c_str())].cnt++;
+                        stCnt[atoll(reLd[i].substr(22).c_str())].ipos=i;
+                    } else if (reLd[i].find("HwfxContents::OutputSet")!=string::npos) {
+                        stCnt[atoll(reLd[i].substr(23).c_str())].cnt++;
+                        stCnt[atoll(reLd[i].substr(23).c_str())].opos=i;
+                    }
+                }
+                ll rbndex=0;
+                for (map<ll,dtCont>::iterator it=exCnt.begin();it!=exCnt.end();it++) {
+                    if (it->second.cnt!=2) cout<<"Error with example #"<<it->first<<endl;
+                    rbndex=max(rbndex,it->first);
+                }
+                if (rbndex!=exCnt.size()) cout<<"Missing examples! "<<exCnt.size()<<" examples found, "<<rbndex<<" examples expected."<<endl;
+                ll rbndst=0;
+                for (map<ll,dtCont>::iterator it=stCnt.begin();it!=stCnt.end();it++) {
+                    if (it->second.cnt!=2) cout<<"Error with i/o set #"<<it->first<<endl;
+                    rbndst=max(rbndst,it->first);
+                }
+                if (rbndst!=stCnt.size()) cout<<"Missing sets! "<<stCnt.size()<<" sets found, "<<rbndst<<" sets expected."<<endl;
+                for (ll i=1;i<=rbndex;i++) {
+                    vector<string>exTmp;
+                    for (ll j=exCnt[i].ipos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) exTmp.push_back(reLd[j]);
+                    inex.push_back(exTmp);
+                    exTmp.clear();
+                    for (ll j=exCnt[i].opos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) exTmp.push_back(reLd[j]);
+                    outex.push_back(exTmp);
+                }
+                for (ll i=1;i<=rbndst;i++) {
+                    vector<string>stTmp;
+                    for (ll j=stCnt[i].ipos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) stTmp.push_back(reLd[j]);
+                    indata.push_back(stTmp);
+                    stTmp.clear();
+                    for (ll j=stCnt[i].opos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) stTmp.push_back(reLd[j]);
+                    outdata.push_back(stTmp);
                 }
             } else {
                 if (SYS==APPL) {
+                    ll dtpt = 1;
+                    ll ex = 1;
                     //DECRYPT
                     string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+target)+" -out "+safespace(db+"tmp/"+target);
                     system(denccmd.c_str());
@@ -1728,7 +1791,7 @@ int main() {
                         cout<<probout[i]<<endl;
                     }
                 } else cout<<"None"<<endl;
-                for (ll i=0;i<ex;i++) {
+                for (ll i=0;i<inex.size();i++) {
                     cout<<"--------"<<endl<<"Example input "<<i+1<<':'<<endl;
                     for (ll j=0;j<inex[i].size();j++) {
                         cout<<inex[i][j]<<endl;
@@ -1788,12 +1851,12 @@ int main() {
                         else compile=false;
                         if (compile) {
                             //run multicore
-                            ll folders=min(dtpt,mltcore);
+                            ll folders=min((ll)indata.size(),mltcore);
                             for (ll i=1;i<=folders;i++) {
                                 system(("mkdir "+safespace(db+"tmp/"+to_string(i))).c_str());
                             }
                             queue<ll>rmtasks;
-                            for (ll i=1;i<=dtpt;i++) {
+                            for (ll i=1;i<=indata.size();i++) {
                                 rmtasks.push(i);
                             }
                             //Copy over exe
@@ -1877,7 +1940,7 @@ int main() {
                                         cle.close();
                                         ll curtask=rmtasks.front();
                                         rmtasks.pop();
-//                                        cout<<"Start "<<curtask<<endl;
+                                        //                                        cout<<"Start "<<curtask<<endl;
                                         //Write in files
                                         ofstream foldout;
                                         foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
@@ -1943,8 +2006,8 @@ int main() {
                             }
                             
                             //Compare output
-                            ll timeres[dtpt];
-                            for (ll i=1;i<=dtpt;i++) {
+                            ll timeres[indata.size()];
+                            for (ll i=1;i<=indata.size();i++) {
                                 ifstream timeread(db+"tmp/time"+to_string(i)+".txt");
                                 if (!timeread.good()) timeres[i-1]=10000;
                                 else timeread>>timeres[i-1];
@@ -1952,7 +2015,7 @@ int main() {
                             }
                             ll correct=0;
                             cout<<"Test results:"<<endl;
-                            for (ll i=1;i<=dtpt;i++) {
+                            for (ll i=1;i<=indata.size();i++) {
                                 if (timeres[i-1]>1000) {
                                     cout<<"#"<<i<<"-TE"<<endl;
                                 } else {
@@ -1998,7 +2061,7 @@ int main() {
                                 }
                             }
                             removeWithinFolder(db+"tmp/");
-                            ll score = round(((ld)correct/dtpt)*100.0);
+                            ll score = round(((ld)correct/indata.size())*100.0);
                             if (data[chosenID].score>score) cout<<"Your submission score:"<<score<<endl;
                             data[chosenID].score=max(data[chosenID].score,score);
                             cout<<"Your current score:"<<data[chosenID].score<<endl;
