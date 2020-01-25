@@ -7,6 +7,7 @@
 #include <queue>
 #include <cmath>
 #include <set>
+#include <filesystem>
 #include "aes.h"
 #include "openhelper.hpp"
 #include "cores.hpp"
@@ -19,8 +20,10 @@
 #include "soundsetup.hpp"
 #include "convtool.hpp"
 using namespace std;
+namespace fs = std::__fs::filesystem;
 typedef long long ll;
 typedef long double ld;
+#define CANUSEFS 1
 #define APPL 0
 #define WIN 1
 #define SYS 0
@@ -68,29 +71,40 @@ void clc() {
     }
 }
 void removeWithinFolder(string pathWithSlash) {
-    if (SYS==APPL) {
-        system(("rm -r "+safespace(pathWithSlash)+"*").c_str());
-    }
+#if CANUSEFS
+    fs::remove_all(pathWithSlash);
+    fs::create_directory(pathWithSlash);
+#else
+    system(("rm -r "+safespace(pathWithSlash)+"*").c_str());
+#endif
 }
-void makeExe(string path) {
+void makeExe(string pth) {
     if (SYS==APPL) {
-        system(("chmod 755 "+safespace(path)).c_str());
+#if CANUSEFS
+        fs::permissions(pth,fs::perms::all);
+#else
+        system(("chmod 755 "+safespace(pth)).c_str());
+#endif
     }
     if (SYS==WIN) {
         //do nothing
     }
 }
 void makeDir(string pathWithSlash) {
-    if (SYS==APPL) {
-        system(("mkdir "+safespace(pathWithSlash)).c_str());
-    }
+#if CANUSEFS
+    fs::create_directory(pathWithSlash);
+#else
+    system(("mkdir "+safespace(pathWithSlash)).c_str());
+#endif
 }
 void removeFolder(string pathWithSlash) {
-    if (SYS==APPL) {
-        system(("rm -r "+safespace(pathWithSlash)).c_str());
-    }
+#if CANUSEFS
+    fs::remove_all(pathWithSlash);
+#else
+    system(("rm -r "+safespace(pathWithSlash)).c_str());
+#endif
 }
-void unzip(string from, string to) {
+void unzip(string from, string to) { //COMPATIBILITY ONLY
     if (SYS==APPL) {
         system(("unzip -o -qq "+safespace(to)+" -d "+safespace(from)).c_str());
     }
@@ -101,6 +115,8 @@ void install(bool comple) {
     if (comple) {
         makeDir(db);
         makeDir(db+"tmp/");
+        makeDir(db+"tmp2/");
+        ofstream disExist(db+"tmp2/exists");
     }
     //Install cores(39824),gpphelper(48608),openhelper(135904),handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
     string pstfx="";
@@ -190,7 +206,9 @@ string salt = "8C55A67258E39056";
 string cmdenc = "openssl enc -aes-256-cbc -K "+key+" -iv "+iv+" -S "+salt;
 //MARK:END UTILITIES
 ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers;
-string lockedf,vers,expvers;;
+string lockedf,vers,expvers;
+unsigned char aesKey[32]={28,57,67,10,127,108,14,197,41,73,79,16,242,2,85,227,120,13,53,121,23,109,231,129,210,147,11,128,115,1,242,150};
+map<ll,char>randname;
 bool cmp(hw const &a, hw const &b) {
     //    cout<<"COMPARING "<<a.name<<' '<<b.name<<endl;
     if (srtmode==1) return a.name<b.name;
@@ -223,7 +241,7 @@ bool cmp(hw const &a, hw const &b) {
     }
     return 0;
 }
-vector<hw>data;
+vector<hw>asmt;
 struct egg {
     string ach, trig, msg;
 };
@@ -256,7 +274,7 @@ void savedata() {
     out<<"dwtReserved::STARTSTRUCT"<<endl<<"Hwf"<<endl<<"FNAME"<<endl<<"SCORE"<<endl<<"NAME"<<endl<<"DATE"<<endl<<"dwtReserved::ENDSTRUCT"<<endl<<"dwtReserved::STARTSTRUCT"<<endl<<"Song"<<endl<<"FNAME"<<endl<<"SNAME"<<endl<<"dwtReserved::ENDSTRUCT"<<endl<<"dwtReserved::STARTSTRUCT"<<endl<<"selaud"<<endl<<"AUDID"<<endl<<"dwtReserved::ENDSTRUCT"<<endl<<"dwtReserved::START"<<endl<<"Song"<<endl;
     for (ll i=0;i<audio.size();i++) out<<audio[i].fname<<endl<<audio[i].sname<<endl;
     out<<"dwtReserved::END"<<endl<<"Song"<<endl<<"dwtReserved::START"<<endl<<"Hwf";
-    for (ll i=0;i<data.size();i++) out<<endl<<data[i].id<<endl<<data[i].score<<endl<<data[i].name<<endl<<data[i].date;
+    for (ll i=0;i<asmt.size();i++) out<<endl<<asmt[i].id<<endl<<asmt[i].score<<endl<<asmt[i].name<<endl<<asmt[i].date;
     out<<endl<<"dwtReserved::END"<<endl<<"Hwf"<<endl<<"dwtReserved::START"<<endl<<"selaud";
     for (ll i=0;i<selaud.size();i++) out<<endl<<selaud[i];
     out<<endl<<"dwtReserved::END"<<endl<<"selaud";
@@ -293,8 +311,196 @@ ll pkgImport(ifstream &rdpkg, stringstream &newPkg, string impItm) {
     }
     return 0;
 }
+void writeHwfx(string &pkgpth,bool &impFail,string &disTtl,stringstream &newPkg) {
+    impFail=false;
+    newPkg.str("");
+    newPkg<<"HwfxContents::Payload"<<endl<<"HwfxContents::Title"<<endl;
+    ifstream rdpkg(pkgpth+"/title.txt");
+    if (pkgImport(rdpkg,newPkg,"Title")==-1) impFail=true;
+    rdpkg.close();
+    rdpkg.open(pkgpth+"/title.txt");
+    if (rdpkg.good()) getline(rdpkg,disTtl);
+    rdpkg.close();
+    newPkg<<"HwfxContents::Description"<<endl;
+    rdpkg.open(pkgpth+"/description.txt");
+    if (pkgImport(rdpkg,newPkg,"Description")==-1) impFail=true;
+    rdpkg.close();
+    newPkg<<"HwfxContents::InputDes"<<endl;
+    rdpkg.open(pkgpth+"/in.txt");
+    if (pkgImport(rdpkg,newPkg,"Input")==-1) impFail=true;
+    rdpkg.close();
+    newPkg<<"HwfxContents::OutputDes"<<endl;
+    rdpkg.open(pkgpth+"/out.txt");
+    if (pkgImport(rdpkg,newPkg, "Output")==-1) impFail=true;
+    rdpkg.close();
+    ll expkgs=1;
+    while (true) {
+        ifstream intst(pkgpth+"/exin"+to_string(expkgs)+".txt"),outtst(pkgpth+"/exout"+to_string(expkgs)+".txt");
+        if (intst.good()&&outtst.good()) {
+            newPkg<<"HwfxContents::ExampleInput"<<to_string(expkgs)<<endl;
+            if (pkgImport(intst,newPkg,"Example input "+to_string(expkgs))==-1) {
+                impFail=true;
+                break;
+            }
+            newPkg<<"HwfxContents::ExampleOutput"<<to_string(expkgs)<<endl;
+            if (pkgImport(outtst,newPkg,"Example output "+to_string(expkgs))==-1) {
+                impFail=true;
+                break;
+            }
+            expkgs++;
+        } else if (intst.good()||outtst.good()) {
+            if (intst.good()) cout<<"Error! Missing exout"<<to_string(expkgs)<<".txt to match existing exin"+to_string(expkgs)+".txt"<<endl;
+            else cout<<"Error! Missing exin"<<to_string(expkgs)<<".txt to match existing exout"+to_string(expkgs)+".txt"<<endl;
+            impFail=true;
+            expkgs--;
+            break;
+        } else {
+            expkgs--;
+            break;
+        }
+    }
+    ll testSets=1;
+    while (true) {
+        ifstream intst(pkgpth+"/in"+to_string(testSets)+".txt"),outtst(pkgpth+"/out"+to_string(testSets)+".txt");
+        if (intst.good()&&outtst.good()) {
+            newPkg<<"HwfxContents::InputSet"<<to_string(testSets)<<endl;
+            if (pkgImport(intst,newPkg,"Input "+to_string(testSets))==-1) {
+                impFail=true;
+                break;
+            }
+            newPkg<<"HwfxContents::OutputSet"<<to_string(testSets)<<endl;
+            if (pkgImport(outtst,newPkg,"Output "+to_string(testSets))==-1) {
+                impFail=true;
+                break;
+            }
+            testSets++;
+        } else if (intst.good()||outtst.good()) {
+            if (intst.good()) cout<<"Error! Missing out"<<to_string(expkgs)<<".txt to match existing in"+to_string(expkgs)+".txt"<<endl;
+            else cout<<"Error! Missing in"<<to_string(expkgs)<<".txt to match existing out"+to_string(expkgs)+".txt"<<endl;
+            impFail=true;
+            testSets--;
+            break;
+        } else {
+            testSets--;
+            break;
+        }
+    }
+}
+bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
+    //undo encryption, encrypt again, then throw it into .hwfx files. It has the exact same header format.
+    ifstream importHwfx(pkgpth);
+    vector<string>fHeader;
+    while (true) {
+        if (importHwfx.eof()) return 0;
+        string impTmp;
+        getline(importHwfx,impTmp);
+        if (impTmp=="HwfxContents::PAYLOAD") break;
+        else fHeader.push_back(impTmp);
+    }
+    stringstream transF;
+    transF<<importHwfx.rdbuf();
+    string fplyd=transF.str();
+    transF.str("");
+    importHwfx.close();
+    unsigned char iv[16]={0};
+    bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
+    string fvers="";
+    ll dtsz=0,ascnt=1;
+    for (ll i=0;i<fHeader.size();i++) {
+        if (fHeader[i]=="HwfxContents::FVERS") {
+            if (i+1!=fHeader[i].size()) {
+                fvers=fHeader[++i];
+                gotFvers=true;
+            }
+        } else if (fHeader[i]=="HwfxContents::DATASIZE") {
+            if (i+1!=fHeader.size()) {
+                dtsz=atoll(fHeader[++i].c_str());
+                gotDtsz=true;
+            }
+        } else if (fHeader[i]=="HwfxContents::IV") {
+            for (ll j=i+1;j<=i+16;j++) {
+                iv[j-i-1]=atoll(fHeader[j].c_str());
+                if (j+1==fHeader.size()&&j-i-1!=15) {
+                    cout<<"Error reading IV!"<<endl;
+                    break;
+                }
+            }
+            i+=17;
+            gotIv=true;
+        } else if (fHeader[i]=="HwfxContents::PKGCNT") {
+            if (i+1!=fHeader.size()) {
+                ascnt=atoll(fHeader[++i].c_str());
+                gotCnt=true;
+            }
+        }
+    }
+    if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
+    bool goodImp=true;
+    if (!gotIv) {
+        cout<<"Error reading IV!"<<endl;
+        goodImp=false;
+    }
+    if (!gotFvers) cout<<"Error reading file version!"<<endl;
+    if (!gotDtsz) {
+        cout<<"Error reading file size!"<<endl;
+        goodImp=false;
+    }
+    if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
+    ll newLen=dtsz;
+    newLen=ceil(dtsz/16.0)*16;
+    unsigned char decPkg[newLen];
+    for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
+    for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
+    aes_decrypt(decPkg, ceil(dtsz/16.0)*16, aesKey, 32, iv);
+    for (ll i=0;i<dtsz;i++) transF<<decPkg[i];
+    vector<string>reLd;
+    string ft;
+    while (getline(transF,ft)) reLd.push_back(ft);
+    ll parsel=0;
+    if (ascnt==1) vq=true;
+    while (true) {
+        if (parsel>=reLd.size()) break;
+        ll parserr=reLd.size();
+        for (ll i=parsel+1;i<=reLd.size();i++) {
+            if (reLd[i]=="HwfxContents::Payload") parserr=i;
+        }
+        stringstream dtplyd;
+        string nm;
+        for (ll i=parsel;i<parserr;i++) dtplyd<<reLd[i]<<endl;
+        for (ll i=parsel;i<parserr;i++) {
+            if (reLd[i]=="HwfxContents::Title"&&i+1<parserr) nm=reLd[i+1];
+        }
+        parsel=parserr+1;
+        string newname="";
+        for (ll i=0;i<16;i++) newname+=randname[rand()%36];
+        ofstream miniF(db+newname);
+        miniF<<"HwfxContents::"<<endl<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<"1"<<endl<<"HwfxContents::DATASIZE"<<endl<<dtplyd.str().size()<<endl<<"HwfxContents::IV"<<endl;
+        unsigned char iv[16];
+        for (ll i=0;i<16;i++) {
+            iv[i]=rand()%256;
+            miniF<<(int)iv[i]<<endl;
+        }
+        miniF<<"HwfxContents::PAYLOAD"<<endl;
+        string plyd = dtplyd.str();
+        ll newLen=plyd.size();
+        newLen=ceil(newLen/16.0)*16;
+        unsigned char newMsg[newLen];
+        for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
+        for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
+        aes_encrypt(newMsg, newLen, aesKey, 32, iv);
+        for (ll i=0;i<newLen;i++) miniF<<newMsg[i];
+        miniF.close();
+        
+        //All it needs to do:push to asmt, set target, vq, and chosenID
+        asmt.push_back({newname,0,nm,date()});
+        //ID SCORE NAME DATE
+        target = newname;
+        chosenID=asmt.size()-1;
+    }
+    return 1;
+}
 int main() {
-    unsigned char aesKey[32]={28,57,67,10,127,108,14,197,41,73,79,16,242,2,85,227,120,13,53,121,23,109,231,129,210,147,11,128,115,1,242,150};
+    if (__cplusplus!=201703) cout<<"Error! Use C++17!"<<endl;
     //TODO:Make helpers start on program launch. relaunch if helper is detected to be dead.
     //TODO:Reconvert openhelper
     //TODO:Add search
@@ -361,7 +567,6 @@ int main() {
     }
     //openssl enc -aes-256-cbc -K FB384BE6E7009275 -iv 755CA3572C3FAC78 -S 8C55A67258E39056
     clc();
-    map<ll,char>randname;
     for (ll i=48;i<=57;i++) {
         randname[i-48]=i;
     }
@@ -437,6 +642,7 @@ int main() {
     rmsil<<"SILENCE!";
     rmsil.close();
     removeWithinFolder(db+"tmp/");
+    removeWithinFolder(db+"tmp2/");
     for (ll i=0;i<easter.size();i++) secret[i]=0;
     string prefx;
     if (in.good()&&!freshins) {
@@ -468,7 +674,7 @@ int main() {
                             //ID,NAME,SCORE,DATE
                             while (contentsf[++i]!=prefx+"END") {
                                 if (cur==ttl) {
-                                    data.push_back(curwt);
+                                    asmt.push_back(curwt);
                                     cur=0;
                                 }
                                 if (structref[stname][cur]=="FNAME") curwt.id=contentsf[i];
@@ -477,7 +683,7 @@ int main() {
                                 else if (structref[stname][cur]=="DATE") curwt.date=contentsf[i];
                                 cur++;
                             }
-                            if (cur==ttl) data.push_back(curwt);
+                            if (cur==ttl) asmt.push_back(curwt);
                         } else if (stname=="Song") {
                             audio.clear();
                             soundlog curwt=(soundlog){"",""};
@@ -541,6 +747,13 @@ int main() {
             changelog();
         }
     }
+    ifstream checkTmp2(db+"tmp2/exists");
+    if (!checkTmp2.good()) {
+        makeDir(db+"tmp2/");
+        ofstream nowExists(db+"tmp2/exists");
+        nowExists<<"I exist!";
+        nowExists.close();
+    }
     if (fsvers!=0&&fsvers!=2) {
         impissue=true;
         impfsVers=true;
@@ -562,10 +775,10 @@ int main() {
         if (to_string(atoll(corefin.c_str()))==corefin) compcore=atoll(corefin.c_str());
         else cout<<"System information gathering failed."<<endl;
     } else cout<<"System information gathering failed."<<endl;
-    for (ll i=0;i<data.size();i++) {
-        ifstream bundltest(db+data[i].id);
+    for (ll i=0;i<asmt.size();i++) {
+        ifstream bundltest(db+asmt[i].id);
         if (!bundltest.good()) {
-            data.erase(data.begin()+i);
+            asmt.erase(asmt.begin()+i);
             i--;
         }
     }
@@ -577,13 +790,13 @@ int main() {
         if (rten==4) timethres=60;
         if (rten==5) timethres=360;
         timethres*=24*60*60;
-        for (ll i=0;i<data.size();i++) {
+        for (ll i=0;i<asmt.size();i++) {
             struct tm convt;
-            strptime(data[i].date.c_str(),"%a %b %d %T %Y",&convt);
+            strptime(asmt[i].date.c_str(),"%a %b %d %T %Y",&convt);
             time_t convtt;
             convtt=mktime(&convt);
             if (difftime(chrono::system_clock::to_time_t(chrono::system_clock::now()),convtt)>timethres) {
-                data.erase(data.begin()+i);
+                asmt.erase(asmt.begin()+i);
                 i--;
             }
         }
@@ -602,7 +815,31 @@ int main() {
     vector<vector<strWithInt>>showMore;
     //launch helpers
     cout<<"Launching helpers..."<<endl;
-    
+    for (ll i=1;i<=mltcore;i++) {
+        makeDir(db+"tmp/"+to_string(i)+"/");
+        //Copy over openhelper
+        #if CANUSEFS
+            ifstream checkohex(db+"tmp2/openhelper"+to_string(i));
+            if (!checkohex.good()) fs::copy(db+"openhelper",db+"tmp2/openhelper"+to_string(i));
+        #else
+            system(("cp "+safespace(db+"openhelper")+" "+safespace(db+"tmp2/openhelper"+to_string(i))).c_str());
+        #endif
+        //Open openhelper
+        //Write to the bridge
+        ofstream foldout(db+"tmp/pth.bridge");
+        if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in tmp."<<endl;
+        foldout<<i;
+        foldout.close();
+        system(("open "+safespace(db+"tmp2/openhelper"+to_string(i))).c_str());
+        while (true) {
+            ifstream signaltest(db+"tmp/"+to_string(i)+"/firini.signal");
+            if (signaltest.good()) {
+                signaltest.close();
+                break;
+            }
+            usleep(1e4);
+        }
+    }
     while (true) {
         ll chosenID=0;
         string target;
@@ -616,11 +853,11 @@ int main() {
         }
         cout<<"Welcome to Homework(v1.5) for C++ Programming Club. Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         if (rand()%5==0) cout<<"Tip:"<<tips[rand()%tips.size()]<<endl;
-        if (data.size()) cout<<"--------"<<endl;
-        sort(data.begin(),data.end(),cmp);
+        if (asmt.size()) cout<<"--------"<<endl;
+        sort(asmt.begin(),asmt.end(),cmp);
         bool containsNonK=false,containsK=false;
-        for (ll i=0;i<data.size()&&(!containsNonK||!containsK);i++) {
-            if (data[i].score<100) containsNonK=true;
+        for (ll i=0;i<asmt.size()&&(!containsNonK||!containsK);i++) {
+            if (asmt[i].score<100) containsNonK=true;
             else containsK=true;
         }
         if (grp==0) {
@@ -629,9 +866,9 @@ int main() {
             ll curGrpCnt=0;
             if (containsNonK) {
                 curGroupContents.push_back((strWithInt){"Incomplete Assignments:",-1});
-                for (ll i=0;i<data.size();i++) {
-                    if (data[i].score<100) {
-                        curGroupContents.push_back((strWithInt){data[i].name+":"+to_string(data[i].score),i});
+                for (ll i=0;i<asmt.size();i++) {
+                    if (asmt[i].score<100) {
+                        curGroupContents.push_back((strWithInt){asmt[i].name+":"+to_string(asmt[i].score),i});
                         curGrpCnt++;
                         if (ovrflw!=0) {
                             if (curGrpCnt%ovrflw==0) {
@@ -645,9 +882,9 @@ int main() {
             if (curGroupContents.size()!=0&&containsK) curGroupContents.push_back((strWithInt){"--------",-1});
             if (containsK) {
                 curGroupContents.push_back((strWithInt){"Completed assignments:",-1});
-                for (ll i=0;i<data.size();i++) {
-                    if (data[i].score==100) {
-                        curGroupContents.push_back((strWithInt){data[i].name+":"+to_string(data[i].score),i});
+                for (ll i=0;i<asmt.size();i++) {
+                    if (asmt[i].score==100) {
+                        curGroupContents.push_back((strWithInt){asmt[i].name+":"+to_string(asmt[i].score),i});
                         curGrpCnt++;
                         if (ovrflw!=0) {
                             if (curGrpCnt%ovrflw==0) {
@@ -664,7 +901,7 @@ int main() {
         }
         ll outcnt = 5;
         vector<ll>hwpoint;
-        if (data.size()) {
+        if (asmt.size()) {
             for (ll i=0;i<showMore[grp].size();i++) {
                 if (showMore[grp][i].mtd!=-1) {
                     cout<<"["<<outcnt<<"]";
@@ -742,7 +979,7 @@ int main() {
                                         string hwfnm;
                                         getline(hwfnmrd,hwfnm);
                                         hwfnmrd.close();
-                                        data.push_back({newnm,0,hwfnm,date()});
+                                        asmt.push_back({newnm,0,hwfnm,date()});
                                     } else cout<<"Missing Homework file!"<<endl;
                                 }
                             } else {
@@ -767,11 +1004,11 @@ int main() {
                         }
                         fcopy(pkgpth,db+newname);
                         string nm="HWSysUndefined";
-                        data.push_back({newname,0,nm,date()});
+                        asmt.push_back({newname,0,nm,date()});
                         //ID SCORE NAME DATE
                         target = newname;
                         vq=true;
-                        chosenID=data.size()-1;
+                        chosenID=asmt.size()-1;
                     }
                 }
                 if (!idfile) {
@@ -781,107 +1018,7 @@ int main() {
                         }
                     } else cout<<"Unidentified file. Do not tamper with file extensions! Homework will take this as a hwfX file."<<endl;
                     if (!idfile) {
-                        //undo encryption, encrypt again, then throw it into .ihwfx files. It has the exact same header format.
-                        ifstream importHwfx(pkgpth);
-                        vector<string>fHeader;
-                        while (true) {
-                            string impTmp;
-                            getline(importHwfx,impTmp);
-                            if (impTmp=="HwfxContents::PAYLOAD") break;
-                            else fHeader.push_back(impTmp);
-                        }
-                        stringstream transF;
-                        transF<<importHwfx.rdbuf();
-                        string fplyd=transF.str();
-                        transF.str("");
-                        importHwfx.close();
-                        unsigned char iv[16]={0};
-                        bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
-                        string fvers="";
-                        ll dtsz=0,ascnt=0;
-                        for (ll i=0;i<fHeader.size();i++) {
-                            if (fHeader[i]=="HwfxContents::FVERS") {
-                                if (i+1!=fHeader[i].size()) {
-                                    fvers=fHeader[++i];
-                                    gotFvers=true;
-                                }
-                            } else if (fHeader[i]=="HwfxContents::DATASIZE") {
-                                if (i+1!=fHeader.size()) {
-                                    dtsz=atoll(fHeader[++i].c_str());
-                                    gotDtsz=true;
-                                }
-                            } else if (fHeader[i]=="HwfxContents::IV") {
-                                for (ll j=i+1;j<=i+16;j++) {
-                                    iv[j-i-1]=atoll(fHeader[j].c_str());
-                                    if (j+1==fHeader.size()&&j-i-1!=15) {
-                                        cout<<"Error reading IV!"<<endl;
-                                        break;
-                                    }
-                                }
-                                i+=17;
-                                gotIv=true;
-                            } else if (fHeader[i]=="HwfxContents::PKGCNT") {
-                                if (i+1!=fHeader.size()) {
-                                    ascnt=atoll(fHeader[++i].c_str());
-                                    gotCnt=true;
-                                }
-                            }
-                        }
-                        if (!gotIv) cout<<"Error reading IV!"<<endl;
-                        if (!gotFvers) cout<<"Error reading file version!"<<endl;
-                        if (!gotDtsz) cout<<"Error reading file size!"<<endl;
-                        if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
-                        if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
-                        ll newLen=dtsz;
-                        newLen=ceil(dtsz/16.0)*16;
-                        unsigned char decPkg[newLen];
-                        for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
-                        for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
-                        aes_decrypt(decPkg, ceil(dtsz/16.0)*16, aesKey, 32, iv);
-                        for (ll i=0;i<dtsz;i++) transF<<decPkg[i];
-                        vector<string>reLd;
-                        string ft;
-                        while (getline(transF,ft)) reLd.push_back(ft);
-                        ll parsel=0;
-                        if (ascnt==1) vq=true;
-                        while (true) {
-                            if (parsel>=reLd.size()) break;
-                            ll parserr=reLd.size();
-                            for (ll i=parsel+1;i<=reLd.size();i++) {
-                                if (reLd[i]=="HwfxContents::Payload") parserr=i;
-                            }
-                            stringstream dtplyd;
-                            string nm;
-                            for (ll i=parsel;i<parserr;i++) dtplyd<<reLd[i]<<endl;
-                            for (ll i=parsel;i<parserr;i++) {
-                                if (reLd[i]=="HwfxContents::Title"&&i+1<parserr) nm=reLd[i+1];
-                            }
-                            parsel=parserr+1;
-                            string newname="";
-                            for (ll i=0;i<16;i++) newname+=randname[rand()%36];
-                            ofstream miniF(db+newname);
-                            miniF<<"HwfxContents::"<<endl<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<"1"<<endl<<"HwfxContents::DATASIZE"<<endl<<dtplyd.str().size()<<endl<<"HwfxContents::IV"<<endl;
-                            unsigned char iv[16];
-                            for (ll i=0;i<16;i++) {
-                                iv[i]=rand()%256;
-                                miniF<<(int)iv[i]<<endl;
-                            }
-                            miniF<<"HwfxContents::PAYLOAD"<<endl;
-                            string plyd = dtplyd.str();
-                            ll newLen=plyd.size();
-                            newLen=ceil(newLen/16.0)*16;
-                            unsigned char newMsg[newLen];
-                            for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
-                            for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
-                            aes_encrypt(newMsg, newLen, aesKey, 32, iv);
-                            for (ll i=0;i<newLen;i++) miniF<<newMsg[i];
-                            miniF.close();
-                            
-                            data.push_back({newname,0,nm,date()});
-                            //ID SCORE NAME DATE
-                            target = newname;
-                            chosenID=data.size()-1;
-                        }
+                        readHwfx(pkgpth,vq,target,chosenID);
                     }
                 }
                 if (autosave) savedata();
@@ -1245,15 +1382,27 @@ int main() {
         } else if (homeans=="4") {
             //Save
             savedata();
+            for (ll i=1;i<=mltcore;i++) {
+                ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
+                stopsig<<"STOP";
+                stopsig.close();
+            }
             return 0;
         } else if (tolower(homeans[0])=='f'&&homeans.length()==1&&impissue) {
+            for (ll i=1;i<=mltcore;i++) {
+                ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
+                stopsig<<"STOP";
+                stopsig.close();
+            }
             return 0;
         } else if (to_string(homeansNum)==homeans&&homeansNum>=5&&homeansNum<outcnt) { //MARK:Set file
             chosenID=hwpoint[atoll(homeans.c_str())-5];
             if (chosenID==-1) cout<<"Invalid response."<<endl;
             else {
                 vq=true;
-                target = data[chosenID].id;
+                target = asmt[chosenID].id;
             }
         } else if (to_string(homeansNum)==homeans&&homeansNum==prevID&&prevID!=-1) grp--;
         else if (to_string(homeansNum)==homeans&&homeansNum==nxtID&&nxtID!=-1) grp++;
@@ -1284,8 +1433,15 @@ int main() {
             if (!hitach) {
                 if (vtmp=="changelog") {
                     changelog();
-                } else if (vtmp=="kill") return 0;
-                else if (vtmp=="crypt") {
+                } else if (vtmp=="kill") {
+                    for (ll i=1;i<=mltcore;i++) {
+                        ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                        if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
+                        stopsig<<"STOP";
+                        stopsig.close();
+                    }
+                    return 0;
+                } else if (vtmp=="crypt") {
                     if (SYS==APPL) {
                         cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
                         string cryf;
@@ -1302,6 +1458,105 @@ int main() {
                     } else {
                         cout<<"Crypto system is only available on the Mac version of Homework."<<endl;
                     }
+                } else if (vtmp=="batchmake") {
+                    #if CANUSEFS
+                    //Batch make
+                    cout<<"Input directory to batch make from"<<endl;
+                    string dirBtch;
+                    getline(cin,dirBtch);
+                    vector<string>chkobj;
+                    if (true) {
+                        chkobj.push_back("description.txt");
+                        chkobj.push_back("in.txt");
+                        chkobj.push_back("out.txt");
+                        chkobj.push_back("title.txt");
+                        chkobj.push_back("in1.txt");
+                        chkobj.push_back("in2.txt");
+                    }
+                    for (const fs::directory_entry& entry : fs::recursive_directory_iterator(dirBtch)) {
+                        if (fs::is_directory(entry.path())) {
+                            ifstream check;
+                            map<string,bool>gotF;
+                            for (const fs::directory_entry& disf : fs::directory_iterator(entry.path())) {
+                                string rdcpkg=disf.path();
+                                while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                                gotF[rdcpkg]=true;
+                            }
+                            bool isQ=true;
+                            for (ll i=0;i<chkobj.size()&&isQ;i++) if (!gotF[chkobj[i]]) isQ=false;
+                            if (isQ) {
+                                string pkgpth=entry.path();
+                                string outpth=pkgpth+".hwfx";
+                                ifstream testOverlap(outpth);
+                                if (testOverlap.good()) {
+                                    cout<<outpth<<" already exists."<<endl;
+                                    continue;
+                                }
+                                string rdcpkg=pkgpth;
+                                while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                                stringstream masterPkg;
+                                ll contCnt=0;
+                                bool impFail;
+                                string disTtl=rdcpkg;
+                                stringstream newPkg;
+                                writeHwfx(pkgpth,impFail,disTtl,newPkg);
+                                if (impFail) cout<<"Processing of "<<disTtl<<" failed."<<endl;
+                                else {
+                                    cout<<disTtl<<" successfully processed."<<endl;
+                                    masterPkg<<newPkg.str();
+                                    contCnt++;
+                                }
+                                if (contCnt>0) {
+                                    ofstream fxOut(outpth);
+                                    if (fxOut.good()) {
+                                        fxOut<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<contCnt<<endl<<"HwfxContents::DATASIZE"<<endl<<masterPkg.str().size()<<endl<<"HwfxContents::IV"<<endl;
+                                        unsigned char iv[16];
+                                        for (ll i=0;i<16;i++) {
+                                            iv[i]=rand()%256;
+                                            fxOut<<(int)iv[i]<<endl;
+                                        }
+                                        fxOut<<"HwfxContents::PAYLOAD"<<endl;
+                                        string plyd = masterPkg.str();
+                                        ll newLen=plyd.size();
+                                        newLen=ceil(newLen/16.0)*16;
+                                        unsigned char newMsg[newLen];
+                                        for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
+                                        for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
+                                        aes_encrypt(newMsg, newLen, aesKey, 32, iv);
+                                        for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
+                                    } else cout<<"Unable to write to out file."<<endl;
+                                    fxOut.close();
+                                }
+                            }
+                        }
+                    }
+                    #else
+                        cout<<"Error! Filesystem is unavailable!"<<endl;
+                    #endif
+                } else if (vtmp=="batchimport") {
+                    #if CANUSEFS
+                    //Batch import
+                    cout<<"Input directory to batch import from"<<endl;
+                    string dirBtch;
+                    getline(cin,dirBtch);
+                    for (const fs::directory_entry& entry : fs::recursive_directory_iterator(dirBtch)) {
+                        if (fs::is_regular_file(entry.path())) {
+                            string chk=entry.path();
+                            if (chk.size()>=5&&chk.substr(chk.size()-5,5)==".hwfx") {
+                                bool dummy1;
+                                string dummy2;
+                                ll dummy3;
+                                string rdcpth=chk;
+                                while (rdcpth.find("/")!=string::npos) rdcpth=rdcpth.substr(rdcpth.find("/")+1);
+                                if (readHwfx(chk,dummy1,dummy2,dummy3)) cout<<"Successfully imported "<<rdcpth<<endl;
+                                else cout<<"Error importing "<<rdcpth<<endl;
+                            }
+                        }
+                    }
+                    if (autosave) savedata();
+                    #else
+                        cout<<"Error! Filesystem is unavailable!"<<endl;
+                    #endif
                 } else if (vtmp=="clearf") {
                     cout<<"Clear all program files? This action is irreversible(Input CLEAR in all caps to confirm)"<<endl;
                     string clearall;
@@ -1322,7 +1577,8 @@ int main() {
                             cout<<idout<<endl;
                         }
                     }
-                } else if (vtmp=="make") {
+                } else if (vtmp=="const") cout<<"System:"<<SYS<<endl<<"Filesystem:"<<CANUSEFS<<endl;
+                else if (vtmp=="make") {
                     cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add_One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment's directory. Don't include a / at the end of your path."<<endl;
                     string pkgpth;
                     getline(cin,pkgpth);
@@ -1383,83 +1639,13 @@ int main() {
                     stringstream masterPkg;
                     ll contCnt=0;
                     while (true) {
+                        bool impFail;
                         string disTtl=rdcpkg;
-                        bool impFail=false;
                         stringstream newPkg;
-                        newPkg<<"HwfxContents::Payload"<<endl<<"HwfxContents::Title"<<endl;
-                        ifstream rdpkg(pkgpth+"/title.txt");
-                        if (pkgImport(rdpkg,newPkg,"Title")==-1) impFail=true;
-                        rdpkg.close();
-                        rdpkg.open(pkgpth+"/title.txt");
-                        if (rdpkg.good()) getline(rdpkg,disTtl);
-                        rdpkg.close();
-                        newPkg<<"HwfxContents::Description"<<endl;
-                        rdpkg.open(pkgpth+"/description.txt");
-                        if (pkgImport(rdpkg,newPkg,"Description")==-1) impFail=true;
-                        rdpkg.close();
-                        newPkg<<"HwfxContents::InputDes"<<endl;
-                        rdpkg.open(pkgpth+"/in.txt");
-                        if (pkgImport(rdpkg,newPkg,"Input")==-1) impFail=true;
-                        rdpkg.close();
-                        newPkg<<"HwfxContents::OutputDes"<<endl;
-                        rdpkg.open(pkgpth+"/out.txt");
-                        if (pkgImport(rdpkg,newPkg, "Output")==-1) impFail=true;
-                        rdpkg.close();
-                        ll expkgs=1;
-                        while (true) {
-                            ifstream intst(pkgpth+"/exin"+to_string(expkgs)+".txt"),outtst(pkgpth+"/exout"+to_string(expkgs)+".txt");
-                            if (intst.good()&&outtst.good()) {
-                                newPkg<<"HwfxContents::ExampleInput"<<to_string(expkgs)<<endl;
-                                if (pkgImport(intst,newPkg,"Example input "+to_string(expkgs))==-1) {
-                                    impFail=true;
-                                    break;
-                                }
-                                newPkg<<"HwfxContents::ExampleOutput"<<to_string(expkgs)<<endl;
-                                if (pkgImport(outtst,newPkg,"Example output "+to_string(expkgs))==-1) {
-                                    impFail=true;
-                                    break;
-                                }
-                                expkgs++;
-                            } else if (intst.good()||outtst.good()) {
-                                if (intst.good()) cout<<"Error! Missing exout"<<to_string(expkgs)<<".txt to match existing exin"+to_string(expkgs)+".txt"<<endl;
-                                else cout<<"Error! Missing exin"<<to_string(expkgs)<<".txt to match existing exout"+to_string(expkgs)+".txt"<<endl;
-                                impFail=true;
-                                expkgs--;
-                                break;
-                            } else {
-                                expkgs--;
-                                break;
-                            }
-                        }
-                        ll testSets=1;
-                        while (true) {
-                            ifstream intst(pkgpth+"/in"+to_string(testSets)+".txt"),outtst(pkgpth+"/out"+to_string(testSets)+".txt");
-                            if (intst.good()&&outtst.good()) {
-                                newPkg<<"HwfxContents::InputSet"<<to_string(testSets)<<endl;
-                                if (pkgImport(intst,newPkg,"Input "+to_string(testSets))==-1) {
-                                    impFail=true;
-                                    break;
-                                }
-                                newPkg<<"HwfxContents::OutputSet"<<to_string(testSets)<<endl;
-                                if (pkgImport(outtst,newPkg,"Output "+to_string(testSets))==-1) {
-                                    impFail=true;
-                                    break;
-                                }
-                                testSets++;
-                            } else if (intst.good()||outtst.good()) {
-                                if (intst.good()) cout<<"Error! Missing out"<<to_string(expkgs)<<".txt to match existing in"+to_string(expkgs)+".txt"<<endl;
-                                else cout<<"Error! Missing in"<<to_string(expkgs)<<".txt to match existing out"+to_string(expkgs)+".txt"<<endl;
-                                impFail=true;
-                                testSets--;
-                                break;
-                            } else {
-                                testSets--;
-                                break;
-                            }
-                        }
+                        writeHwfx(pkgpth,impFail,disTtl,newPkg);
                         if (impFail) cout<<"Importing of "<<disTtl<<" failed."<<endl;
                         else {
-                            cout<<disTtl<<" successfully imported."<<endl;
+                            cout<<disTtl<<" successfully processed."<<endl;
                             masterPkg<<newPkg.str();
                             contCnt++;
                         }
@@ -1498,12 +1684,12 @@ int main() {
                         cout<<"hwfX file created at "<<outpth<<endl;
                     } else cout<<"No assignments loaded! No file created."<<endl;
                 } else {
-                    for (ll i=0;i<data.size();i++) {
-                        string cmpTmp=data[i].name;
+                    for (ll i=0;i<asmt.size();i++) {
+                        string cmpTmp=asmt[i].name;
                         transform(cmpTmp.begin(),cmpTmp.end(),cmpTmp.begin(),::tolower);
                         if (vtmp==cmpTmp) {
                             chosenID=i;
-                            target=data[chosenID].id;
+                            target=asmt[chosenID].id;
                             vq=true;
                         }
                     }
@@ -1676,8 +1862,8 @@ int main() {
                     qread.open(db+"tmp/"+target+"e/title.txt");
                     getline(qread,probname);
                     qread.close();
-                    if (data[chosenID].name=="HWSysUndefined") {
-                        data[chosenID].name=probname;
+                    if (asmt[chosenID].name=="HWSysUndefined") {
+                        asmt[chosenID].name=probname;
                         if (autosave) savedata();
                     }
                     qread.open(db+"tmp/"+target+"e/in.txt");
@@ -1775,7 +1961,7 @@ int main() {
                 } else cout<<"Error! HW files can only be opened in the macOS version of Homework!"<<endl;
             }
             while (true) {
-                cout<<endl<<probname<<endl<<"Your current score:"<<data[chosenID].score<<endl<<"--------"<<endl<<"Problem description:"<<endl;
+                cout<<endl<<probname<<endl<<"Your current score:"<<asmt[chosenID].score<<endl<<"--------"<<endl<<"Problem description:"<<endl;
                 for (ll i=0;i<probdes.size();i++) {
                     cout<<probdes[i]<<endl;
                 }
@@ -1853,26 +2039,28 @@ int main() {
                             //run multicore
                             ll folders=min((ll)indata.size(),mltcore);
                             for (ll i=1;i<=folders;i++) {
-                                system(("mkdir "+safespace(db+"tmp/"+to_string(i))).c_str());
+                                ifstream testExist(db+"tmp/"+to_string(i));
+                                if (!testExist.good()) makeDir(db+"tmp/"+to_string(i));
                             }
                             queue<ll>rmtasks;
                             for (ll i=1;i<=indata.size();i++) {
                                 rmtasks.push(i);
                             }
                             //Copy over exe
-                            for (ll i=1;i<=folders;i++) system(("cp "+safespace(db+"tmp/exe")+" "+safespace(db+"tmp/"+to_string(i)+"/hwexe"+to_string(i))).c_str());
+                            for (ll i=1;i<=folders;i++) {
+                                #if CANUSEFS
+                                    fs::copy(db+"tmp/exe",db+"tmp/"+to_string(i)+"/hwexe"+to_string(i));
+                                #else
+                                    system(("cp "+safespace(db+"tmp/exe")+" "+safespace(db+"tmp/"+to_string(i)+"/hwexe"+to_string(i))).c_str());
+                                #endif
+                            }
                             //Start the first batch
                             chrono::high_resolution_clock::time_point timer[folders];
                             //MARK:START
                             for (ll i=1;i<=folders;i++) {
                                 ll curtask=rmtasks.front();
                                 rmtasks.pop();
-                                //Write question number
-                                //Write to the bridge
-                                ofstream foldout(db+"tmp/pth.bridge");
-                                if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in tmp."<<endl;
-                                foldout<<i;
-                                foldout.close();
+                                ofstream foldout;
                                 //Write in files
                                 foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
                                 if (!foldout.good()) cout<<"Critical error! Error accessing in.txt in "<<to_string(i)<<endl;
@@ -1885,11 +2073,6 @@ int main() {
                                 if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<"."<<endl;
                                 foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
                                 foldout.close();
-                                //Copy over openhelper
-                                system(("cp "+safespace(db+"openhelper")+" "+safespace(db+"tmp/"+to_string(i))).c_str());
-                                rename((db+"tmp/"+to_string(i)+"/openhelper").c_str(),(db+"tmp/"+to_string(i)+"/openhelper"+to_string(curtask)).c_str());
-                                //Open openhelper
-                                system(("open "+safespace(db+"tmp/"+to_string(i)+"/openhelper"+to_string(i))).c_str());
                                 //Wait for ini.signal
                                 while (true) {
                                     ifstream signaltest(db+"tmp/"+to_string(i)+"/ini.signal");
@@ -1940,7 +2123,6 @@ int main() {
                                         cle.close();
                                         ll curtask=rmtasks.front();
                                         rmtasks.pop();
-                                        //                                        cout<<"Start "<<curtask<<endl;
                                         //Write in files
                                         ofstream foldout;
                                         foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
@@ -1970,12 +2152,6 @@ int main() {
                                     }
                                 }
                                 usleep(1e4);
-                            }
-                            for (ll i=1;i<=folders;i++) {
-                                ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
-                                if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
-                                stopsig<<"STOP";
-                                stopsig.close();
                             }
                             while (true) {
                                 bool canbk=true;
@@ -2062,9 +2238,9 @@ int main() {
                             }
                             removeWithinFolder(db+"tmp/");
                             ll score = round(((ld)correct/indata.size())*100.0);
-                            if (data[chosenID].score>score) cout<<"Your submission score:"<<score<<endl;
-                            data[chosenID].score=max(data[chosenID].score,score);
-                            cout<<"Your current score:"<<data[chosenID].score<<endl;
+                            if (asmt[chosenID].score>score) cout<<"Your submission score:"<<score<<endl;
+                            asmt[chosenID].score=max(asmt[chosenID].score,score);
+                            cout<<"Your current score:"<<asmt[chosenID].score<<endl;
                             if (score==100) {
                                 cor++;
                                 if (cor==1) cout<<"Achievement \"Success\" complete."<<endl;
@@ -2096,7 +2272,7 @@ int main() {
                         cout<<"Code error!";
                     }
                 } else if (hwsubans==to_string(delchc)) {
-                    data.erase(data.begin()+chosenID);
+                    asmt.erase(asmt.begin()+chosenID);
                     remove((db+target).c_str());
                     if (sccode) remove((db+target+".cpp").c_str());
                     clc();
