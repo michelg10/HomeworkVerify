@@ -1,3 +1,7 @@
+#define CANUSEFS 1
+#define APPL 0
+#define WIN 1
+#define SYS 0
 #include <iostream>
 #include <unistd.h>
 #include <fstream>
@@ -7,26 +11,34 @@
 #include <queue>
 #include <cmath>
 #include <set>
+#if CANUSEFS
 #include <filesystem>
+#endif
 #include "aes.h"
-#include "openhelper.hpp"
-#include "cores.hpp"
-#include "gpphelper.hpp"
-#include "handclap.hpp"
-#include "highonlife.hpp"
-#include "acsound.hpp"
-#include "soundkill.hpp"
-#include "irrlib.hpp"
-#include "soundsetup.hpp"
-#include "convtool.hpp"
+#include "openhelper.h"
+#include "gpphelper.h"
+
+#if SYS==APPL
+#include "cores.h"
+#include "handclap.h"
+#include "highonlife.h"
+#include "acsound.h"
+#include "soundkill.h"
+#include "irrlib.h"
+#include "soundsetup.h"
+#endif
+
+#include "convtool.h"
+#if SYS==WIN
+#include <windows.h>
+#include <Lmcons.h>
+#endif
 using namespace std;
+#if CANUSEFS
 namespace fs = std::__fs::filesystem;
+#endif
 typedef long long ll;
 typedef long double ld;
-#define CANUSEFS 1
-#define APPL 0
-#define WIN 1
-#define SYS 0
 //MARK:START UTILITIES
 struct hw {
     string id;
@@ -35,11 +47,59 @@ struct hw {
     string date;
 };
 string safespace(string s) {
-    stringstream ss;
-    for (ll i=0;i<s.length();i++)
-        s[i]==' ' ? ss<<"\\"<<" " : ss<<s[i];
     string rturn;
-    getline(ss,rturn);
+    if (SYS==APPL) {
+        map<char,bool>toEscape;
+        toEscape['~']=toEscape['=']=toEscape['[']=toEscape[']']=toEscape['{']=toEscape['}']=toEscape['\\']=toEscape['|']=toEscape[';']=toEscape['\'']=toEscape['"']=toEscape['<']=toEscape['>']=toEscape['?']=toEscape[' ']=toEscape['!']=toEscape['#']=toEscape['%']=toEscape['&']=toEscape['*']=toEscape['(']=toEscape[')']=1;
+        stringstream ss;
+        for (ll i=0;i<s.length();i++) toEscape[s[i]] ? ss<<"\\"<<s[i] : ss<<s[i];
+        rturn=ss.str();
+    } else if (SYS==WIN) {
+        rturn="\""+s+"\"";
+        for (ll i=0;i<rturn.size();i++) if (rturn[i]=='/') rturn[i]='\\';
+    }
+    return rturn;
+}
+bool isLpYr(ll yr) {
+    return (yr%400==0)||(yr%4==0&&yr%100!=0);
+}
+//Tue Jan 28 20:48:50 2020
+ll strtm2int(string s) { //epoch time:seconds from jan 1,1970 00:00:00
+    s=s.substr(s.find(" ")+1);
+    string monstr=s.substr(0,s.find(" "));
+    s=s.substr(s.find(" ")+1);
+    ll day=atoll(s.substr(0,s.find(" ")).c_str());
+    s=s.substr(s.find(" ")+1);
+    ll hour=atoll(s.substr(0,s.find(":")).c_str());
+    s=s.substr(s.find(":")+1);
+    ll minute=atoll(s.substr(0,s.find(":")).c_str());
+    s=s.substr(s.find(":")+1);
+    ll second=atoll(s.substr(0,s.find(" ")).c_str());
+    s=s.substr(s.find(" ")+1);
+    ll year=atoll(s.c_str());
+    map<string,ll>mon2ll;
+    mon2ll["Jan"]=0;
+    mon2ll["Feb"]=31;
+    mon2ll["Mar"]=mon2ll["Feb"]+(isLpYr(year)?29:28);
+    mon2ll["Apr"]=mon2ll["Mar"]+31;
+    mon2ll["May"]=mon2ll["Apr"]+30;
+    mon2ll["Jun"]=mon2ll["May"]+31;
+    mon2ll["Jul"]=mon2ll["Jun"]+30;
+    mon2ll["Aug"]=mon2ll["Jul"]+31;
+    mon2ll["Sep"]=mon2ll["Aug"]+31;
+    mon2ll["Oct"]=mon2ll["Sep"]+30;
+    mon2ll["Nov"]=mon2ll["Oct"]+31;
+    mon2ll["Dec"]=mon2ll["Nov"]+30;
+    ll rturn=0;
+    for (ll i=1970;i<year;i++) rturn+=(isLpYr(i)?366:365);
+    rturn+=mon2ll[monstr];
+    rturn+=day;
+    rturn*=24;
+    rturn+=hour;
+    rturn*=60;
+    rturn+=minute;
+    rturn*=60;
+    rturn+=second;
     return rturn;
 }
 bool readf(vector<string>&s,string path) {
@@ -56,11 +116,31 @@ bool readf(vector<string>&s,string path) {
     }
     return 1;
 }
-string username = getlogin(),db;
+#if SYS==APPL
+string username = getlogin();
+#endif
+#if SYS==WIN
+string username;
+#endif
+string db;
 //MARK:SYSTEM CALLS
 void inAppLaunch(string s,string args) {
     if (SYS==APPL) {
-        system((safespace(s)+args).c_str());
+        if (args=="") system((safespace(s)).c_str());
+        else system((safespace(s)+" "+args).c_str());
+    } else {
+        if (args=="") system((safespace(s)).c_str());
+        else system((safespace(s)+" "+args).c_str());
+    }
+}
+void stopProcess(string processName) {
+    inAppLaunch(db+"kill",processName);
+}
+void launchNewProcess(string s) {
+    if (SYS==APPL) {
+        system(("open "+safespace(s)).c_str());
+    } else if (SYS==WIN) {
+        system(("start "+safespace(s)).c_str());
     }
 }
 void clc() {
@@ -85,8 +165,7 @@ void makeExe(string pth) {
 #else
         system(("chmod 755 "+safespace(pth)).c_str());
 #endif
-    }
-    if (SYS==WIN) {
+    } else if (SYS==WIN) {
         //do nothing
     }
 }
@@ -101,13 +180,36 @@ void removeFolder(string pathWithSlash) {
 #if CANUSEFS
     fs::remove_all(pathWithSlash);
 #else
-    system(("rm -r "+safespace(pathWithSlash)).c_str());
+    if (SYS==APPL) {
+        system(("rm -r "+safespace(pathWithSlash)).c_str());
+    } else {
+        system(("rd -S /Q "+safespace(pathWithSlash)).c_str());
+    }
 #endif
 }
 void unzip(string from, string to) { //COMPATIBILITY ONLY
     if (SYS==APPL) {
         system(("unzip -o -qq "+safespace(to)+" -d "+safespace(from)).c_str());
     }
+}
+void copyf(string from, string to, bool ovrwrite) {
+#if CANUSEFS
+    ifstream checkifex(to);
+    if (!checkifex.good()) {
+        checkifex.close();
+        fs::copy(from,to);
+    } else if (ovrwrite) {
+        checkifex.close();
+        remove(to.c_str());
+        fs::copy(from,to);
+    }
+#else
+    if (SYS==APPL) {
+        system(("cp "+safespace(from)+" "+safespace(to)).c_str());
+    } else if (SYS==WIN) {
+        system(("copy /y "+safespace(from)+" "+safespace(to)+" >nul 2>nul").c_str());
+    }
+#endif
 }
 //MARK:INSTALL
 void install(bool comple) {
@@ -121,24 +223,29 @@ void install(bool comple) {
     //Install cores(39824),gpphelper(48608),openhelper(135904),handclap(1818048),highonlife(1160862),acsound(94848),soundkill(31840),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
     string pstfx="";
     if (SYS==WIN) pstfx=".exe";
-    const unsigned char* tmp=cores();
-    ofstream installer(db+"cores"+pstfx,ios::binary);
+    ofstream installer;
+    const unsigned char* tmp;
+#if SYS==APPL
+    tmp=cores();
+    installer.open(db+"cores"+pstfx,ios::binary);
     for (ll i=0;i<39824;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"cores");
+    makeExe(db+"cores"+pstfx);
+#endif
     
     installer.open(db+"gpphelper"+pstfx,ios::binary);
     tmp = gpphelper();
     for (ll i=0;i<48608;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"gpphelper");
+    makeExe(db+"gpphelper"+pstfx);
     
     installer.open(db+"openhelper"+pstfx,ios::binary);
     tmp = openhelper();
     for (ll i=0;i<135904;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"openhelper");
+    makeExe(db+"openhelper"+pstfx);
     
+#if SYS==APPL
     installer.open(db+"U2PQX4CHY3SOJ31E.wav",ios::binary);
     tmp=handclap();
     for (ll i=0;i<1818048;i++) installer<<tmp[i];
@@ -153,30 +260,31 @@ void install(bool comple) {
     tmp = acsound();
     for (ll i=0;i<94848;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"acsound");
+    makeExe(db+"acsound"+pstfx);
     
     installer.open(db+"soundkill"+pstfx,ios::binary);
     tmp = soundkill();
     for (ll i=0;i<31840;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"soundkill");
+    makeExe(db+"soundkill"+pstfx);
     
     installer.open(db+"soundsetup"+pstfx,ios::binary);
     tmp=soundsetup();
     for (ll i=0;i<114720;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"soundsetup");
+    makeExe(db+"soundsetup"+pstfx);
     
     installer.open(db+"libirrklang.dylib",ios::binary);
     tmp=irrlib();
     for (ll i=0;i<1975552;i++) installer<<tmp[i];
     installer.close();
+#endif
     
     installer.open(db+"convtool"+pstfx,ios::binary);
     tmp=convtool();
     for (ll i=0;i<109344;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"convtool");
+    makeExe(db+"convtool"+pstfx);
     cout<<"done"<<endl;
 }
 string date() {
@@ -205,8 +313,8 @@ string iv = "755CA3572C3FAC78";
 string salt = "8C55A67258E39056";
 string cmdenc = "openssl enc -aes-256-cbc -K "+key+" -iv "+iv+" -S "+salt;
 //MARK:END UTILITIES
-ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers;
-string lockedf,vers,expvers;
+ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers,prefersCompiler,overrideDefaultFormat;
+string lockedf,vers,expvers,preferredCompiler,compilerFormat;
 unsigned char aesKey[32]={28,57,67,10,127,108,14,197,41,73,79,16,242,2,85,227,120,13,53,121,23,109,231,129,210,147,11,128,115,1,242,150};
 map<ll,char>randname;
 bool cmp(hw const &a, hw const &b) {
@@ -225,12 +333,9 @@ bool cmp(hw const &a, hw const &b) {
         if (a.date==b.date) {
             return a.name<b.name;
         }
-        tm tm1,tm2;
-        strptime(a.date.c_str(),"%a %b %d %T %Y",&tm1);
-        strptime(b.date.c_str(),"%a %b %d %T %Y",&tm2);
-        time_t t1,t2;
-        t1=mktime(&tm1);
-        t2=mktime(&tm2);
+        ll t1,t2;
+        t1=strtm2int(a.date);
+        t2=strtm2int(b.date);
         if (t1-t2>0) {
             if (srtmode==5) return false;
             else return true;
@@ -280,14 +385,17 @@ void savedata() {
     out<<endl<<"dwtReserved::END"<<endl<<"selaud";
 }
 void nml(string &s) {
-    if (s!="") {
-        for (ll i=0;i<s.size()-1;i++) {
-            if (s[i]=='\\'&&s[i+1]==' ') {
-                s.erase(i,2);
-                s.insert(i," ");
+    if (SYS==APPL) {
+        if (s!="") {
+            //any special character not escaped->hand typed
+            for (ll i=0;i<s.size()-1;i++) {
+                if (s[i]=='\\'&&s[i+1]==' ') {
+                    s.erase(i,2);
+                    s.insert(i," ");
+                }
             }
+            if (s[s.size()-1]==' ') s.erase(s.size()-1);
         }
-        if (s[s.size()-1]==' ') s.erase(s.size()-1);
     }
 }
 void changelog() {
@@ -397,10 +505,7 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
         if (impTmp=="HwfxContents::PAYLOAD") break;
         else fHeader.push_back(impTmp);
     }
-    stringstream transF;
-    transF<<importHwfx.rdbuf();
-    string fplyd=transF.str();
-    transF.str("");
+    string fplyd((std::istreambuf_iterator<char>(importHwfx)),istreambuf_iterator<char>());
     importHwfx.close();
     unsigned char iv[16]={0};
     bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
@@ -445,28 +550,33 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
         cout<<"Error reading file size!"<<endl;
         goodImp=false;
     }
+    if (!goodImp) return 0;
     if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
-    ll newLen=dtsz;
-    newLen=ceil(dtsz/16.0)*16;
-    unsigned char decPkg[newLen];
+    ll newLen=ceil(dtsz/16.0)*16;
+    unsigned char* decPkg=new(nothrow) unsigned char[newLen];
     for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
     for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
-    aes_decrypt(decPkg, ceil(dtsz/16.0)*16, aesKey, 32, iv);
-    for (ll i=0;i<dtsz;i++) transF<<decPkg[i];
+    aes_decrypt(decPkg, newLen, aesKey, 32, iv);
     vector<string>reLd;
-    string ft;
-    while (getline(transF,ft)) reLd.push_back(ft);
+    string ft="";
+    for (ll i=0;i<dtsz;i++)
+        if (decPkg[i]=='\n') {
+            reLd.push_back(ft);
+            ft="";
+        } else ft+=decPkg[i];
+    if (ft.size()) reLd.push_back(ft);
     ll parsel=0;
     if (ascnt==1) vq=true;
+    delete[] decPkg;
     while (true) {
         if (parsel>=reLd.size()) break;
         ll parserr=reLd.size();
-        for (ll i=parsel+1;i<=reLd.size();i++) {
+        for (ll i=parsel+1;i<reLd.size();i++) {
             if (reLd[i]=="HwfxContents::Payload") parserr=i;
         }
-        stringstream dtplyd;
+        string dtplyd;
         string nm;
-        for (ll i=parsel;i<parserr;i++) dtplyd<<reLd[i]<<endl;
+        for (ll i=parsel;i<parserr;i++) dtplyd+=reLd[i]+'\n';
         for (ll i=parsel;i<parserr;i++) {
             if (reLd[i]=="HwfxContents::Title"&&i+1<parserr) nm=reLd[i+1];
         }
@@ -474,34 +584,41 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
         string newname="";
         for (ll i=0;i<16;i++) newname+=randname[rand()%36];
         ofstream miniF(db+newname);
-        miniF<<"HwfxContents::"<<endl<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<"1"<<endl<<"HwfxContents::DATASIZE"<<endl<<dtplyd.str().size()<<endl<<"HwfxContents::IV"<<endl;
+        miniF<<"HwfxContents::"<<endl<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<"1"<<endl<<"HwfxContents::DATASIZE"<<endl<<dtplyd.size()<<endl<<"HwfxContents::IV"<<endl;
         unsigned char iv[16];
         for (ll i=0;i<16;i++) {
             iv[i]=rand()%256;
             miniF<<(int)iv[i]<<endl;
         }
         miniF<<"HwfxContents::PAYLOAD"<<endl;
-        string plyd = dtplyd.str();
-        ll newLen=plyd.size();
+        ll newLen=dtplyd.size();
         newLen=ceil(newLen/16.0)*16;
-        unsigned char newMsg[newLen];
-        for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
-        for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
+        unsigned char* newMsg=new unsigned char[newLen];
+        for (ll i=0;i<dtplyd.size();i++) newMsg[i]=dtplyd[i];
+        for (ll i=dtplyd.size();i<newLen;i++) newMsg[i]=0;
+        dtplyd="";
         aes_encrypt(newMsg, newLen, aesKey, 32, iv);
         for (ll i=0;i<newLen;i++) miniF<<newMsg[i];
         miniF.close();
-        
+        delete[] newMsg;
         //All it needs to do:push to asmt, set target, vq, and chosenID
         asmt.push_back({newname,0,nm,date()});
         //ID SCORE NAME DATE
         target = newname;
         chosenID=asmt.size()-1;
     }
+    
     return 1;
 }
 int main() {
-    if (__cplusplus!=201703) cout<<"Error! Use C++17!"<<endl;
-    //TODO:Make helpers start on program launch. relaunch if helper is detected to be dead.
+    #if SYS==WIN
+    char usrn[UNLEN+1];
+    DWORD username_len = UNLEN+1;
+    GetUserName(usrn, &username_len);
+    username=usrn;
+    #endif
+    string exePost="";
+    if (SYS==WIN) exePost=".exe";
     //TODO:Reconvert openhelper
     //TODO:Add search
     intcont["SOUND"]=&sound;
@@ -515,10 +632,13 @@ int main() {
     intcont["OVRFLW"]=&ovrflw;
     intcont["ANSLOCK"]=&anslock;
     intcont["FSVERS"]=&fsvers;
+    intcont["HASPREFERREDCOMPILER"]=&prefersCompiler;
+    intcont["OVERRIDEDEFAULTFORMAT"]=&overrideDefaultFormat;
     strcont["LOCKEDF"]=&lockedf;
     strcont["VERS"]=&vers;
+    strcont["PREFERREDCOMPILER"]=&preferredCompiler;
+    strcont["COMPILERFORMAT"]=&compilerFormat;
     ll const helpertar=4;
-    //Defaults
     rten=6;
     mltcore=1;
     srtmode=1;
@@ -528,6 +648,8 @@ int main() {
     ovrflw=0;
     expfsvers=2;
     expvers="1.5";
+    compilerFormat="%CODEPATH% -o %EXECPATH%";
+    preferredCompiler="";
     audio.push_back({"U2PQX4CHY3SOJ31E","Handclap"});
     audio.push_back({"D63SR3HEXSB6JX1N","High on Life"});
     selaud.push_back(0);
@@ -574,34 +696,38 @@ int main() {
         randname[i-55]=i;
     }
     srand(time(0));
-    ifstream dbtest("/Users/"+username);
-    if (!dbtest.good()) {
-        dbtest.close();
-        bool isdev=true;
-        while (true) {
-            if (isdev) {
-                cout<<"Automatic directory detection failed. Trying dev legitmichel777..."<<endl;
-                username="legitmichel777";
-                isdev=false;
-            } else {
-                cout<<"Automatic directory detection failed. Please enter your username."<<endl;
-                getline(cin,username);
-            }
-            dbtest.open("/Users/"+username);
-            if (dbtest.good()) {dbtest.close();break;}
+    ifstream dbtest;
+    if (SYS==APPL) {
+        dbtest.open("/Users/"+username);
+        if (!dbtest.good()) {
             dbtest.close();
+            bool isdev=true;
             while (true) {
-                cout<<"Error! Please make sure you entered the right user and is on a supported system(macOS). Please enter your username again."<<endl;
-                getline(cin,username);
+                if (isdev) {
+                    cout<<"Automatic directory detection failed. Trying dev legitmichel777..."<<endl;
+                    username="legitmichel777";
+                    isdev=false;
+                } else {
+                    cout<<"Automatic directory detection failed. Please enter your username."<<endl;
+                    getline(cin,username);
+                }
                 dbtest.open("/Users/"+username);
                 if (dbtest.good()) {dbtest.close();break;}
                 dbtest.close();
+                while (true) {
+                    cout<<"Error! Please make sure you entered the right user and is on a supported system(macOS). Please enter your username again."<<endl;
+                    getline(cin,username);
+                    dbtest.open("/Users/"+username);
+                    if (dbtest.good()) {dbtest.close();break;}
+                    dbtest.close();
+                }
+                break;
             }
-            break;
         }
+        dbtest.close();
     }
-    dbtest.close();
-    db = "/Users/"+username+"/Library/Containers/com.mclm7.homework/";
+    if (SYS==APPL) db = "/Users/"+username+"/Library/Containers/com.mclm7.homework/";
+    else db = "/Users/"+username+"/AppData/Roaming/CppHomework/";
     dbtest.open(db+"contents.dwt");
     bool freshins=false;
     bool newUsr=false;
@@ -626,7 +752,7 @@ int main() {
             convtest.close();
             install(0);
             cout<<"v1.3 of Homework introduces a new storage format, DWT. DWT allows for seamless compatibility between versions of Homework. We'll now convert your old MAN file to DWT!"<<endl;
-            inAppLaunch(db+"convtool","");
+            inAppLaunch(db+"convtool"+exePost,"");
             cout<<"Please reopen Homework."<<endl;
             return 0;
         }
@@ -767,14 +893,16 @@ int main() {
         install(0);
         helperver=helpertar;
     }
-    inAppLaunch(db+"cores","");
-    in.open(db+"cores.txt");
-    if (in.good()) {
-        string corefin;
-        in>>corefin;
-        if (to_string(atoll(corefin.c_str()))==corefin) compcore=atoll(corefin.c_str());
-        else cout<<"System information gathering failed."<<endl;
-    } else cout<<"System information gathering failed."<<endl;
+    if (SYS==APPL) {
+        inAppLaunch(db+"cores"+exePost,"");
+        in.open(db+"cores.txt");
+        if (in.good()) {
+            string corefin;
+            in>>corefin;
+            if (to_string(atoll(corefin.c_str()))==corefin) compcore=atoll(corefin.c_str());
+            else cout<<"System information gathering failed."<<endl;
+        } else cout<<"System information gathering failed."<<endl;
+    }
     for (ll i=0;i<asmt.size();i++) {
         ifstream bundltest(db+asmt[i].id);
         if (!bundltest.good()) {
@@ -791,11 +919,8 @@ int main() {
         if (rten==5) timethres=360;
         timethres*=24*60*60;
         for (ll i=0;i<asmt.size();i++) {
-            struct tm convt;
-            strptime(asmt[i].date.c_str(),"%a %b %d %T %Y",&convt);
-            time_t convtt;
-            convtt=mktime(&convt);
-            if (difftime(chrono::system_clock::to_time_t(chrono::system_clock::now()),convtt)>timethres) {
+            ll distime=strtm2int(asmt[i].date);
+            if (difftime(chrono::system_clock::to_time_t(chrono::system_clock::now()),distime)>timethres) {
                 asmt.erase(asmt.begin()+i);
                 i--;
             }
@@ -813,36 +938,154 @@ int main() {
     }
     ll grp=0;
     vector<vector<strWithInt>>showMore;
-    //launch helpers
-    cout<<"Launching helpers..."<<endl;
-    for (ll i=1;i<=mltcore;i++) {
-        makeDir(db+"tmp/"+to_string(i)+"/");
-        //Copy over openhelper
-        #if CANUSEFS
-            ifstream checkohex(db+"tmp2/openhelper"+to_string(i));
-            if (!checkohex.good()) fs::copy(db+"openhelper",db+"tmp2/openhelper"+to_string(i));
-        #else
-            system(("cp "+safespace(db+"openhelper")+" "+safespace(db+"tmp2/openhelper"+to_string(i))).c_str());
-        #endif
-        //Open openhelper
-        //Write to the bridge
-        ofstream foldout(db+"tmp/pth.bridge");
-        if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in tmp."<<endl;
-        foldout<<i;
-        foldout.close();
-        system(("open "+safespace(db+"tmp2/openhelper"+to_string(i))).c_str());
-        while (true) {
-            ifstream signaltest(db+"tmp/"+to_string(i)+"/firini.signal");
-            if (signaltest.good()) {
-                signaltest.close();
-                break;
+    
+    bool compilerExists=false;
+    bool compilerVirgin=true;
+    while (!compilerExists) {
+        ifstream testCompiler;
+        string compilerPath;
+        if (prefersCompiler) {
+            compilerPath=preferredCompiler;
+        } else {
+            if (SYS==APPL) compilerPath="/usr/bin/g++";
+            else if (SYS==WIN) compilerPath="/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++";
+        }
+        testCompiler.open(compilerPath);
+        if (testCompiler.good()) compilerExists=true;
+        else {
+            compilerExists=false;
+        }
+        testCompiler.close();
+        
+        if (!compilerVirgin&&compilerExists) {
+            cout<<"Compiler successfully found."<<endl;
+            if (prefersCompiler) {
+                while (true) {
+                    cout<<"Current compiler format:"<<compilerFormat<<endl<<"Is this correct?"<<endl<<"[1]Yes"<<endl<<"[2]No"<<endl;
+                    string formatcor;
+                    getline(cin,formatcor);
+                    if (formatcor=="1") {
+                        break;
+                    } else if (formatcor=="2") {
+                        clc();
+                        bool masterBreak=false;
+                        while (true) {
+                            cout<<"Please input the new format"<<endl;
+                            getline(cin,compilerFormat);
+                            if (compilerFormat.find("%CODEPATH%")!=string::npos&&compilerFormat.find("%EXECPATH")!=string::npos) {
+                                clc();
+                                masterBreak=true;
+                                break;
+                            } else {
+                                clc();
+                                cout<<"Error! Compiler format must include %CODEPATH% (The path to the code) and %EXECPATH% (The path to the output executable)!"<<endl;
+                            }
+                        }
+                        if (masterBreak) break;
+                    }
+                    clc();
+                }
             }
-            usleep(1e4);
+        }
+        
+        if (compilerExists) break;
+        cout<<"Error! Compiler not found!"<<endl;
+        string compAnsr;
+        if (prefersCompiler) {
+            if (SYS==APPL) testCompiler.open("/usr/bin/g++");
+            else if (SYS==WIN) testCompiler.open("/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe");
+            if (testCompiler.good()) {
+                testCompiler.close();
+                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist but the default ";
+                if (SYS==APPL) cout<<"Xcode";
+                else if (SYS==WIN) cout<<"Dev-C++";
+                cout<<" compiler does."<<endl<<"[1]Try again with my compiler"<<endl<<"[2]Use Homework's default compiler"<<endl<<"[3]Set new custom compiler"<<endl<<"[4]Use Homework without evaluation features"<<endl;
+                getline(cin,compAnsr);
+                if (compAnsr=="2") {
+                    prefersCompiler=0;
+                } else if (compAnsr=="3") {
+                    clc();
+                    cout<<"Input the path to the custom compiler"<<endl;
+                    getline(cin,preferredCompiler);
+                    nml(preferredCompiler);
+                } else if (compAnsr=="4") {
+                    clc();
+                    break;
+                } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+            } else {
+                testCompiler.close();
+                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist and Homework cannot find it's default ";
+                if (SYS==APPL) cout<<"Xcode";
+                else if (SYS==WIN) cout<<"Dev-C++";
+                cout<<" compiler either."<<endl<<"[1]Try again"<<endl<<"[2]Set a new custom compiler"<<endl<<"[3]Use default compiler and try again"<<endl<<"[4]Use Homework without evaluation features"<<endl;
+                getline(cin,compAnsr);
+                if (compAnsr=="2") {
+                    clc();
+                    cout<<"Input the path to the custom compiler"<<endl;
+                    getline(cin,preferredCompiler);
+                    nml(preferredCompiler);
+                } else if (compAnsr=="3") {
+                    prefersCompiler=0;
+                } else if (compAnsr=="4") {
+                    clc();
+                    break;
+                } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+            }
+        } else {
+            cout<<"Homework's default ";
+            if (SYS==APPL) cout<<"Xcode";
+            else if (SYS==WIN) cout<<"Dev-C++";
+            cout<<" compiler cannot be found."<<endl<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use Homework without evaluation features"<<endl;
+            getline(cin,compAnsr);
+            if (compAnsr=="2") {
+                clc();
+                cout<<"Input the path to the custom compiler"<<endl;
+                getline(cin,preferredCompiler);
+                nml(preferredCompiler);
+                prefersCompiler=1;
+            } else if (compAnsr=="3") {
+                clc();
+                break;;
+            } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+        }
+        clc();
+        compilerVirgin=false;
+    }
+    
+    //launch helpers
+    if (compilerExists) {
+        cout<<"Launching helpers..."<<endl;
+        for (ll i=1;i<=mltcore;i++) {
+            auto testTmOut = chrono::high_resolution_clock::now();
+            makeDir(db+"tmp/"+to_string(i)+"/");
+            ofstream markExist(db+"tmp/"+to_string(i)+"/exists");
+            markExist.close();
+            //Copy over openhelper
+            copyf(db+"openhelper"+exePost, db+"tmp2/openhelper"+to_string(i)+exePost, 0);
+            //Open openhelper
+            //Write to the bridge
+            ofstream foldout(db+"tmp/pth.bridge");
+            if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in tmp."<<endl;
+            foldout<<i;
+            foldout.close();
+            launchNewProcess(db+"tmp2/openhelper"+to_string(i)+exePost);
+            while (true) {
+                ifstream signaltest(db+"tmp/"+to_string(i)+"/firini.signal");
+                if (signaltest.good()) {
+                    signaltest.close();
+                    break;
+                }
+                usleep(1e4);
+                if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - testTmOut).count()>2000) {
+                    cout<<"Error! Timeout for helper "<<i<<endl;
+                    break;
+                }
+            }
         }
     }
     while (true) {
         ll chosenID=0;
-        string target;
+        string target="";
         bool vq = false;
         if (impissue) {
             if (impfsVers) cout<<"!!!Contents file has wrong file system version. Press [F] to force quit. This will prevent corruption of the file"<<endl<<"You will lose all unsaved data. ";
@@ -951,7 +1194,7 @@ int main() {
                             }
                             fcopy(pkgpth, db+"tmp/"+newname);
                             //UNZIP
-                            system(("unzip -o -qq "+safespace(db+"tmp/"+newname)+" -d "+safespace(db+"tmp/"+newname+'u')).c_str());
+                            unzip(db+"tmp/"+newname,db+"tmp/"+newname+'u');
                             //Read contents file
                             vector<string>pkgcontent;
                             ifstream pkgcont(db+"tmp/"+newname+"u/contents.man");
@@ -974,7 +1217,7 @@ int main() {
                                         string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+newnm)+" -out "+safespace(db+"tmp/"+newnm);
                                         system(denccmd.c_str());
                                         //OPEN EM
-                                        system(("unzip -o -qq "+safespace(db+"tmp/"+newnm)+" -d "+safespace(db+"tmp/"+newnm+'e')).c_str());
+                                        unzip(db+"tmp/"+newnm,db+"tmp/"+newnm+'e');
                                         ifstream hwfnmrd(db+"tmp/"+newnm+"e/title.txt");
                                         string hwfnm;
                                         getline(hwfnmrd,hwfnm);
@@ -1018,7 +1261,7 @@ int main() {
                         }
                     } else cout<<"Unidentified file. Do not tamper with file extensions! Homework will take this as a hwfX file."<<endl;
                     if (!idfile) {
-                        readHwfx(pkgpth,vq,target,chosenID);
+                        if (!readHwfx(pkgpth,vq,target,chosenID)) cout<<"Error importing file"<<endl;
                     }
                 }
                 if (autosave) savedata();
@@ -1061,6 +1304,7 @@ int main() {
             clc();
         } else if (homeans=="3") {
             while (true) {
+                //TODO:Add compiler options
                 cout<<"Settings"<<endl<<"[1]Sort:";
                 if (srtmode==1) cout<<"Alphabetically, increasing"<<endl;
                 else if (srtmode==2) cout<<"Alphabetically, decreasing"<<endl;
@@ -1136,18 +1380,58 @@ int main() {
                     if (autosave) savedata();
                 } else if (setans=="3") {
                     cout<<"About multicore:Your processor may be capable of running multiple tasks at once. Using multicore settings will evaluate homework using more cores. "<<endl<<"Input the amount of cores."<<endl;
-                    if (compcore==0) cout<<"Suggestion is unavailble."<<endl;
-                    else if (compcore<=3) cout<<"Using one core is recommended."<<endl;
-                    else cout<<"Using "<<compcore-2<<" cores is recommended."<<endl;
+                    if (SYS==APPL) {
+                        if (compcore==0) cout<<"Suggestion is unavailble."<<endl;
+                        else if (compcore<=3) cout<<"Using one core is recommended."<<endl;
+                        else cout<<"Using "<<compcore-2<<" cores is recommended."<<endl;
+                    }
                     string settmp;
                     getline(cin,settmp);
                     if (to_string(atoll(settmp.c_str()))==settmp) {
                         ll coretmp = atoll(settmp.c_str());
                         if (coretmp>0) {
-                            mltcore=coretmp;
-                            if (mltcore==1) cout<<"Multicore successfully set to 1 core."<<endl;
-                            else cout<<"Multicore successfully set to "<<mltcore<<" cores."<<endl;
-                        }
+                            if (coretmp<=10) {
+                                if (coretmp<mltcore) {
+                                    if (compilerExists) {
+                                        for (ll i=coretmp+1;i<=mltcore;i++) {
+                                            ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                            if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
+                                            stopsig<<"STOP";
+                                            stopsig.close();
+                                        }
+                                    }
+                                } else if (coretmp>mltcore) {
+                                    if (compilerExists) {
+                                        cout<<"Launching extra helpers..."<<endl;
+                                        for (ll i=mltcore+1;i<=coretmp;i++) {
+                                            makeDir(db+"tmp/"+to_string(i)+"/");
+                                            ofstream markExist(db+"tmp/"+to_string(i)+"/exists");
+                                            markExist.close();
+                                            //Copy over openhelper
+                                            copyf(db+"openhelper"+exePost,db+"tmp2/openhelper"+to_string(i)+exePost,0);
+                                            //Open openhelper
+                                            //Write to the bridge
+                                            ofstream foldout(db+"tmp/pth.bridge");
+                                            if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in tmp."<<endl;
+                                            foldout<<i;
+                                            foldout.close();
+                                            launchNewProcess(db+"tmp2/openhelper"+to_string(i)+exePost);
+                                            while (true) {
+                                                ifstream signaltest(db+"tmp/"+to_string(i)+"/firini.signal");
+                                                if (signaltest.good()) {
+                                                    signaltest.close();
+                                                    break;
+                                                }
+                                                usleep(1e4);
+                                            }
+                                        }
+                                    }
+                                }
+                                mltcore=coretmp;
+                                if (mltcore==1) cout<<"Multicore successfully set to 1 core."<<endl;
+                                else cout<<"Multicore successfully set to "<<mltcore<<" cores."<<endl;
+                            } else cout<<"Error! It is not advised to use more than 10 cores."<<endl;
+                        } else cout<<"Error! A positive amount of cores must be used."<<endl;
                     }
                     if (autosave) savedata();
                 } else if (setans=="4") {
@@ -1279,7 +1563,7 @@ int main() {
                                 sil<<"SILENCE";
                                 sil.close();
                                 removeWithinFolder(db+"tmp/");
-                                system(("open "+safespace(db+"soundsetup")).c_str());
+                                launchNewProcess(db+"soundsetup"+exePost);
                                 ifstream donetest;
                                 while (true) {
                                     donetest.open(db+"tmp/installed.txt");
@@ -1351,6 +1635,7 @@ int main() {
                             } else if (anslockans=="2") {
                                 cout<<"Enter the path of the file"<<endl;
                                 getline(cin,anslockans);
+                                nml(anslockans);
                                 if (anslockans.find("dwtReserved::")==string::npos) {
                                     lockedf=anslockans;
                                     break;
@@ -1366,6 +1651,7 @@ int main() {
                             if (anslockans=="1") {
                                 cout<<"Enter the path of the file"<<endl;
                                 getline(cin,anslockans);
+                                nml(anslockans);
                                 if (anslockans.find("dwtReserved::")==string::npos) {
                                     lockedf=anslockans;
                                     anslock=1;
@@ -1382,19 +1668,30 @@ int main() {
         } else if (homeans=="4") {
             //Save
             savedata();
-            for (ll i=1;i<=mltcore;i++) {
-                ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
-                if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
-                stopsig<<"STOP";
-                stopsig.close();
+            if (compilerExists) {
+                for (ll i=1;i<=mltcore;i++) {
+                    ifstream testEx(db+"tmp/"+to_string(i)+"/exists");
+                    if (!testEx.good()) {
+                        testEx.close();
+                        makeDir(db+"tmp/"+to_string(i)+"/");
+                    }
+                }
+                for (ll i=1;i<=mltcore;i++) {
+                    ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                    if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
+                    stopsig<<"STOP";
+                    stopsig.close();
+                }
             }
             return 0;
         } else if (tolower(homeans[0])=='f'&&homeans.length()==1&&impissue) {
-            for (ll i=1;i<=mltcore;i++) {
-                ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
-                if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
-                stopsig<<"STOP";
-                stopsig.close();
+            if (compilerExists) {
+                for (ll i=1;i<=mltcore;i++) {
+                    ofstream stopsig(db+"tmp/"+to_string(i)+"/pth.bridge");
+                    if (!stopsig.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<" while planting STOP signal"<<endl;
+                    stopsig<<"STOP";
+                    stopsig.close();
+                }
             }
             return 0;
         } else if (to_string(homeansNum)==homeans&&homeansNum>=5&&homeansNum<outcnt) { //MARK:Set file
@@ -1453,6 +1750,7 @@ int main() {
                             cout<<"Enter the output file."<<endl;
                             string cryof;
                             getline(cin,cryof);
+                            nml(cryof);
                             system((cmdenc+" -in "+safespace(cryf)+" -out "+safespace(cryof)).c_str());
                         } else cout<<"File error!"<<endl;
                     } else {
@@ -1464,6 +1762,7 @@ int main() {
                     cout<<"Input directory to batch make from"<<endl;
                     string dirBtch;
                     getline(cin,dirBtch);
+                    nml(dirBtch);
                     vector<string>chkobj;
                     if (true) {
                         chkobj.push_back("description.txt");
@@ -1475,7 +1774,6 @@ int main() {
                     }
                     for (const fs::directory_entry& entry : fs::recursive_directory_iterator(dirBtch)) {
                         if (fs::is_directory(entry.path())) {
-                            ifstream check;
                             map<string,bool>gotF;
                             for (const fs::directory_entry& disf : fs::directory_iterator(entry.path())) {
                                 string rdcpkg=disf.path();
@@ -1517,13 +1815,20 @@ int main() {
                                         }
                                         fxOut<<"HwfxContents::PAYLOAD"<<endl;
                                         string plyd = masterPkg.str();
-                                        ll newLen=plyd.size();
-                                        newLen=ceil(newLen/16.0)*16;
-                                        unsigned char newMsg[newLen];
-                                        for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
-                                        for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
-                                        aes_encrypt(newMsg, newLen, aesKey, 32, iv);
-                                        for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
+                                        if (plyd.size()>0) {
+                                            ll newLen=plyd.size();
+                                            newLen=ceil(newLen/16.0)*16;
+                                            unsigned char* newMsg=new(nothrow) unsigned char[newLen];
+                                            if (!newMsg) {
+                                                cout<<"Fatal error! Error MEMALLOC."<<endl;
+                                            } else {
+                                                for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
+                                                for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
+                                                aes_encrypt(newMsg, newLen, aesKey, 32, iv);
+                                                for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
+                                                delete[] newMsg;
+                                            }
+                                        } else cout<<"Error! Processed package empty!"<<endl;
                                     } else cout<<"Unable to write to out file."<<endl;
                                     fxOut.close();
                                 }
@@ -1539,21 +1844,26 @@ int main() {
                     cout<<"Input directory to batch import from"<<endl;
                     string dirBtch;
                     getline(cin,dirBtch);
-                    for (const fs::directory_entry& entry : fs::recursive_directory_iterator(dirBtch)) {
-                        if (fs::is_regular_file(entry.path())) {
-                            string chk=entry.path();
-                            if (chk.size()>=5&&chk.substr(chk.size()-5,5)==".hwfx") {
-                                bool dummy1;
-                                string dummy2;
-                                ll dummy3;
-                                string rdcpth=chk;
-                                while (rdcpth.find("/")!=string::npos) rdcpth=rdcpth.substr(rdcpth.find("/")+1);
-                                if (readHwfx(chk,dummy1,dummy2,dummy3)) cout<<"Successfully imported "<<rdcpth<<endl;
-                                else cout<<"Error importing "<<rdcpth<<endl;
+                    nml(dirBtch);
+                    ifstream testIfExst(dirBtch);
+                    if (testIfExst.good()) {
+                        testIfExst.close();
+                        for (const fs::directory_entry& entry : fs::recursive_directory_iterator(dirBtch)) {
+                            if (fs::is_regular_file(entry.path())) {
+                                string chk=entry.path();
+                                if (chk.size()>=5&&chk.substr(chk.size()-5,5)==".hwfx") {
+                                    bool dummy1=0;
+                                    string dummy2="";
+                                    ll dummy3=0;
+                                    string rdcpth=chk;
+                                    while (rdcpth.find("/")!=string::npos) rdcpth=rdcpth.substr(rdcpth.find("/")+1);
+                                    if (readHwfx(chk,dummy1,dummy2,dummy3)) cout<<"Successfully imported "<<rdcpth<<endl;
+                                    else cout<<"Error importing "<<rdcpth<<endl;
+                                }
                             }
                         }
-                    }
-                    if (autosave) savedata();
+                        if (autosave) savedata();
+                    } else cout<<"Error reading directory!"<<endl;
                     #else
                         cout<<"Error! Filesystem is unavailable!"<<endl;
                     #endif
@@ -1579,9 +1889,10 @@ int main() {
                     }
                 } else if (vtmp=="const") cout<<"System:"<<SYS<<endl<<"Filesystem:"<<CANUSEFS<<endl;
                 else if (vtmp=="make") {
-                    cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add_One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment's directory. Don't include a / at the end of your path."<<endl;
+                    cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment's directory. Don't include a / at the end of your path."<<endl;
                     string pkgpth;
                     getline(cin,pkgpth);
+                    nml(pkgpth);
                     string outpth=pkgpth+".hwfx";
                     bool gogogo=false;
                     while (true) {
@@ -1601,6 +1912,7 @@ int main() {
                                     rdcpkg+=".hwfx";
                                     cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
                                     getline(cin,outpth);
+                                    nml(outpth);
                                     outpth=outpth+"/"+rdcpkg;
                                     testOverlap.close();
                                     break;
@@ -1623,6 +1935,7 @@ int main() {
                                     rdcpkg+=".hwfx";
                                     cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
                                     getline(cin,outpth);
+                                    nml(outpth);
                                     outpth=outpth+"/"+rdcpkg;
                                     break;
                                 } else {
@@ -1659,6 +1972,7 @@ int main() {
                         if (doItAgain=="1") {
                             cout<<"Please input the assignment's directory. Don't include a / at the end of your path."<<endl;
                             getline(cin,pkgpth);
+                            nml(pkgpth);
                         } else break;
                     }
                     if (contCnt>0) {
@@ -1674,11 +1988,12 @@ int main() {
                             string plyd = masterPkg.str();
                             ll newLen=plyd.size();
                             newLen=ceil(newLen/16.0)*16;
-                            unsigned char newMsg[newLen];
+                            unsigned char* newMsg=new unsigned char[newLen];
                             for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
                             for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
                             aes_encrypt(newMsg, newLen, aesKey, 32, iv);
                             for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
+                            delete[] newMsg;
                         } else cout<<"Unable to write to out file."<<endl;
                         fxOut.close();
                         cout<<"hwfX file created at "<<outpth<<endl;
@@ -1718,23 +2033,22 @@ int main() {
             vector<vector<string>>indata;
             vector<vector<string>>inex;
             if (hwfxVerf=="HwfxContents::") {
-                ifstream rd(db+target);
+                string pkgpth=db+target;
+                ifstream importHwfx(pkgpth);
                 vector<string>fHeader;
                 while (true) {
+                    if (importHwfx.eof()) return 0;
                     string impTmp;
-                    getline(rd,impTmp);
+                    getline(importHwfx,impTmp);
                     if (impTmp=="HwfxContents::PAYLOAD") break;
                     else fHeader.push_back(impTmp);
                 }
-                stringstream transF;
-                transF<<rd.rdbuf();
-                string fplyd=transF.str();
-                transF.str("");
-                rd.close();
+                string fplyd((std::istreambuf_iterator<char>(importHwfx)),istreambuf_iterator<char>());
+                importHwfx.close();
                 unsigned char iv[16]={0};
                 bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
                 string fvers="";
-                ll dtsz=0,ascnt=0;
+                ll dtsz=0,ascnt=1;
                 for (ll i=0;i<fHeader.size();i++) {
                     if (fHeader[i]=="HwfxContents::FVERS") {
                         if (i+1!=fHeader[i].size()) {
@@ -1763,21 +2077,35 @@ int main() {
                         }
                     }
                 }
-                if (!gotIv) cout<<"Error reading IV!"<<endl;
-                if (!gotFvers) cout<<"Error reading file version!"<<endl;
-                if (!gotDtsz) cout<<"Error reading file size!"<<endl;
-                if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
                 if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
+                bool goodImp=true;
+                if (!gotIv) {
+                    cout<<"Error reading IV!"<<endl;
+                    goodImp=false;
+                }
+                if (!gotFvers) cout<<"Error reading file version!"<<endl;
+                if (!gotDtsz) {
+                    cout<<"Error reading file size!"<<endl;
+                    goodImp=false;
+                }
+                if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
                 ll newLen=dtsz;
                 newLen=ceil(dtsz/16.0)*16;
-                unsigned char decPkg[newLen];
+                unsigned char* decPkg=new(nothrow) unsigned char[newLen];
                 for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
                 for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
-                aes_decrypt(decPkg, ceil(dtsz/16.0)*16, aesKey, 32, iv);
-                for (ll i=0;i<dtsz;i++) transF<<decPkg[i];
+                aes_decrypt(decPkg, newLen, aesKey, 32, iv);
                 vector<string>reLd;
-                string ft;
-                while (getline(transF,ft)) reLd.push_back(ft);
+                string ft="";
+                for (ll i=0;i<dtsz;i++)
+                    if (decPkg[i]=='\n') {
+                        reLd.push_back(ft);
+                        ft="";
+                    } else ft+=decPkg[i];
+                if (ft.size()) reLd.push_back(ft);
+                ll parsel=0;
+                if (ascnt==1) vq=true;
+                delete[] decPkg;
                 //read in all except exin and inset
                 //use maps to verify exin and inset
                 //then read
@@ -1835,7 +2163,11 @@ int main() {
                     for (ll j=stCnt[i].ipos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) stTmp.push_back(reLd[j]);
                     indata.push_back(stTmp);
                     stTmp.clear();
-                    for (ll j=stCnt[i].opos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) stTmp.push_back(reLd[j]);
+                    for (ll j=stCnt[i].opos+1;j<reLd.size();j++) {
+                        string isAtEnd=reLd[j];
+                        if (isAtEnd.find("HwfxContents::")!=string::npos) break;
+                        stTmp.push_back(reLd[j]);
+                    }
                     outdata.push_back(stTmp);
                 }
             } else {
@@ -1846,7 +2178,7 @@ int main() {
                     string denccmd = "openssl aes-256-cbc -d -K "+key+" -iv "+iv+" -S "+salt+" -in "+safespace(db+target)+" -out "+safespace(db+"tmp/"+target);
                     system(denccmd.c_str());
                     //OPEN EM
-                    system(("unzip -o -qq "+safespace(db+"tmp/"+target)+" -d "+safespace(db+"tmp/"+target+'e')).c_str());
+                    unzip(db+"tmp/"+target,db+"tmp/"+target+'e');
                     //READ EM
                     ifstream qread(db+"tmp/"+target+"e/description.txt");
                     if (qread.good()) {
@@ -1987,9 +2319,13 @@ int main() {
                         cout<<outex[i][j]<<endl;
                     }
                 }
-                cout<<"--------"<<endl<<"[1]Submit"<<endl;
-                ll cumsub=2;
-                ll delchc=-1,subscclc=-1,exitclc=-1,ansfclc=-1;
+                ll cumsub=1;
+                ll delchc=-1,subscclc=-1,exitclc=-1,ansfclc=-1,subm=-1;
+                cout<<"--------"<<endl;
+                if (compilerExists) {
+                    cout<<"["<<cumsub++<<"]Submit"<<endl;
+                    subm=cumsub-1;
+                }
                 if (anslock) {
                     string simplansf=lockedf;
                     while (simplansf.find("/")!=string::npos) simplansf=simplansf.substr(simplansf.find("/")+1);
@@ -2002,7 +2338,7 @@ int main() {
                 ifstream scodetst(db+target+".cpp");
                 if (scodetst.good()) sccode=true;
                 scodetst.close();
-                if (sccode) {
+                if (sccode&&SYS==APPL) {
                     cout<<"["<<cumsub++<<"]View last submitted source code"<<endl;
                     subscclc=cumsub-1;
                 }
@@ -2010,281 +2346,363 @@ int main() {
                 exitclc=cumsub-1;
                 string hwsubans;
                 getline(cin,hwsubans);
-                if (hwsubans=="1"||(anslock&&hwsubans==to_string(ansfclc))) {
-                    ofstream silence(db+"tmp/sl.silence");
-                    if (!silence.good()) cout<<"Critical error! Error accessing TMP"<<endl;
-                    silence<<"Silent!";
-                    silence.close();
-                    removeWithinFolder(db+"tmp/");
-                    string cdpth;
-                    if (hwsubans==to_string(ansfclc)) {
-                        cdpth=lockedf;
-                    } else {
-                        cout<<"Enter code path"<<endl;
-                        getline(cin,cdpth);
-                    }
-                    nml(cdpth);
-                    ifstream codeverf(cdpth);
-                    if (codeverf.good()) {
-                        codeverf.close();
-                        fcopy(cdpth,db+"tmp/preppedcode.cpp");
-                        fcopy(cdpth,db+target+".cpp");
-                        //MARK:Compile
-                        inAppLaunch(db+"gpphelper"," "+username);
-                        bool compile=true;
-                        ifstream testcomp(db+"tmp/exe");
-                        if (testcomp.good()) compile=true;
-                        else compile=false;
-                        if (compile) {
-                            //run multicore
-                            ll folders=min((ll)indata.size(),mltcore);
-                            for (ll i=1;i<=folders;i++) {
-                                ifstream testExist(db+"tmp/"+to_string(i));
-                                if (!testExist.good()) makeDir(db+"tmp/"+to_string(i));
+                if (hwsubans!="-1") {
+                    if (hwsubans==to_string(subm)||(anslock&&hwsubans==to_string(ansfclc))) {
+                        ofstream silence(db+"tmp/sl.silence");
+                        if (!silence.good()) cout<<"Critical error! Error accessing TMP"<<endl;
+                        silence<<"Silent!";
+                        silence.close();
+                        removeWithinFolder(db+"tmp/");
+                        string cdpth;
+                        if (hwsubans==to_string(ansfclc)) {
+                            cdpth=lockedf;
+                        } else {
+                            clc();
+                            cout<<"Enter code path"<<endl;
+                            getline(cin,cdpth);
+                        }
+                        
+                        nml(cdpth);
+                        ifstream codeverf(cdpth);
+                        if (codeverf.good()) {
+                            codeverf.close();
+                            fcopy(cdpth,db+"tmp/preppedcode.cpp");
+                            fcopy(cdpth,db+target+".cpp");
+                            //MARK:Compile
+                            string compilerArg="";
+                            if (prefersCompiler) {
+                                compilerArg=preferredCompiler+" ";
+                            } else {
+                                if (SYS==APPL) compilerArg="g++";
+                                else if (SYS==WIN) compilerArg=safespace("/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++");
                             }
-                            queue<ll>rmtasks;
-                            for (ll i=1;i<=indata.size();i++) {
-                                rmtasks.push(i);
+                            compilerArg+=" ";
+                            if (prefersCompiler||overrideDefaultFormat) {
+                                cout<<"INDEVELOPMENT!"<<endl;
+                                //TODO:Indev
+                            } else {
+                                //"%CODEPATH% -o %EXECPATH%"
+                                string innerpth=db+"tmp/preppedcode.cpp";
+                                stringstream reldinnerpth;
+                                for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
+                                innerpth=reldinnerpth.str();
+                                compilerArg+="\\\""+safespace(innerpth)+"\\\"";
+                                compilerArg+=" -o ";
+                                innerpth=db+"tmp/exe"+exePost;
+                                reldinnerpth.str("");
+                                for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
+                                innerpth=reldinnerpth.str();
+                                compilerArg+="\\\""+safespace(innerpth)+"\\\"";
                             }
-                            //Copy over exe
-                            for (ll i=1;i<=folders;i++) {
-                                #if CANUSEFS
-                                    fs::copy(db+"tmp/exe",db+"tmp/"+to_string(i)+"/hwexe"+to_string(i));
-                                #else
-                                    system(("cp "+safespace(db+"tmp/exe")+" "+safespace(db+"tmp/"+to_string(i)+"/hwexe"+to_string(i))).c_str());
-                                #endif
-                            }
-                            //Start the first batch
-                            chrono::high_resolution_clock::time_point timer[folders];
-                            //MARK:START
-                            for (ll i=1;i<=folders;i++) {
-                                ll curtask=rmtasks.front();
-                                rmtasks.pop();
-                                ofstream foldout;
-                                //Write in files
-                                foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
-                                if (!foldout.good()) cout<<"Critical error! Error accessing in.txt in "<<to_string(i)<<endl;
-                                if (indata[curtask-1].size()!=0) foldout<<indata[curtask-1][0];
-                                for (ll j=1;j<indata[curtask-1].size();j++) {
-                                    foldout<<endl<<indata[curtask-1][j];
+                            inAppLaunch(db+"gpphelper"+exePost,"\""+db+"err"+"\" \""+compilerArg+"\"");
+                            cout<<"\""+db+"err"+"\" \""+compilerArg+"\""<<endl;
+                            bool compile=true;
+                            ifstream testcomp(db+"tmp/exe"+exePost);
+                            if (testcomp.good()) compile=true;
+                            else compile=false;
+                            if (compile) {
+                                //run multicore
+                                ll folders=min((ll)indata.size(),mltcore);
+                                for (ll i=1;i<=folders;i++) {
+                                    ifstream testExist(db+"tmp/"+to_string(i)+"/exists");
+                                    if (!testExist.good()) {
+                                        makeDir(db+"tmp/"+to_string(i));
+                                        ofstream markExist(db+"tmp/"+to_string(i)+"/exists");
+                                        markExist.close();
+                                    }
                                 }
-                                foldout.close();
-                                foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
-                                if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<"."<<endl;
-                                foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
-                                foldout.close();
-                                //Wait for ini.signal
+                                queue<ll>rmtasks;
+                                auto checkAck = chrono::high_resolution_clock::now();
+                                for (ll i=1;i<=folders;i++) {
+                                    ofstream getAck(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                    getAck<<"ACK";
+                                    getAck.close();
+                                }
+                                for (ll i=1;i<=indata.size();i++) {
+                                    rmtasks.push(i);
+                                }
+                                //Copy over exe
+                                for (ll i=1;i<=folders;i++) {
+                                    copyf(db+"tmp/exe"+exePost,db+"tmp/"+to_string(i)+"/hwexe"+to_string(i)+exePost,0);
+                                }
+                                //Start the first batch
+                                chrono::high_resolution_clock::time_point timer[folders];
+                                bool rcvAck[folders];
+                                for (ll i=0;i<folders;i++) rcvAck[i]=0;
+                                ll rcvCum=0;
+                                
                                 while (true) {
-                                    ifstream signaltest(db+"tmp/"+to_string(i)+"/ini.signal");
-                                    if (signaltest.good()) {
-                                        signaltest.close();
+                                    for (ll i=1;i<=folders;i++) {
+                                        if (!rcvAck[i-1]) {
+                                            ifstream lookAck(db+"tmp/"+to_string(i)+"/ack.bridge");
+                                            if (lookAck.good()) {
+                                                string lookfor;
+                                                getline(lookAck,lookfor);
+                                                if (lookfor=="ACK") {
+                                                    rcvCum++;
+                                                    rcvAck[i-1]=1;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (rcvCum==folders) break;
+                                    if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - checkAck).count()>100) {
+                                        for (ll i=1;i<=folders;i++) {
+                                            if (!rcvAck[i-1]) {
+                                                //Copy over openhelper
+                                                copyf(db+"openhelper",db+"tmp2/openhelper"+to_string(i)+exePost,0);
+                                                //Open openhelper
+                                                //Write to the bridge
+                                                ofstream foldout(db+"tmp/pth.bridge");
+                                                if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in tmp."<<endl;
+                                                foldout<<i;
+                                                foldout.close();
+                                                launchNewProcess(db+"tmp2/openhelper"+to_string(i)+exePost);
+                                                while (true) {
+                                                    ifstream signaltest(db+"tmp/"+to_string(i)+"/firini.signal");
+                                                    if (signaltest.good()) {
+                                                        signaltest.close();
+                                                        break;
+                                                    }
+                                                    usleep(1e4);
+                                                }
+                                            }
+                                        }
                                         break;
                                     }
                                     usleep(1e4);
                                 }
-                                timer[i-1]=chrono::high_resolution_clock::now();
-                                ofstream cle(db+"tmp/"+to_string(i)+"/pth.bridge");
-                                if (!cle.good()) cout<<"Critical error! Error clearing path bridge in "<<i<<"."<<endl;
-                                cle.close();
-                            }
-                            bool mainsig[folders];
-                            for (ll i=1;i<=folders;i++) {
-                                mainsig[i-1]=false;
-                            }
-                            while (!rmtasks.empty()) {
+                                //MARK:START
                                 for (ll i=1;i<=folders;i++) {
-                                    if (!mainsig[i-1]) {
-                                        //Look for TE
-                                        //Look for main.signal
-                                        ifstream mainsigtest(db+"tmp/"+to_string(i)+"/main.signal");
-                                        if (mainsigtest.good()) {
-                                            string legit;
-                                            mainsigtest>>legit;
-                                            if (legit=="COM") {
+                                    ll curtask=rmtasks.front();
+                                    rmtasks.pop();
+                                    ofstream foldout;
+                                    //Write in files
+                                    foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
+                                    if (!foldout.good()) cout<<"Critical error! Error accessing in.txt in "<<to_string(i)<<endl;
+                                    if (indata[curtask-1].size()!=0) foldout<<indata[curtask-1][0];
+                                    for (ll j=1;j<indata[curtask-1].size();j++) {
+                                        foldout<<endl<<indata[curtask-1][j];
+                                    }
+                                    foldout.close();
+                                    foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                    if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<"."<<endl;
+                                    foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
+                                    foldout.close();
+                                    //Wait for ini.signal
+                                    while (true) {
+                                        ifstream signaltest(db+"tmp/"+to_string(i)+"/ini.signal");
+                                        if (signaltest.good()) {
+                                            signaltest.close();
+                                            break;
+                                        }
+                                        usleep(1e4);
+                                    }
+                                    timer[i-1]=chrono::high_resolution_clock::now();
+                                    ofstream cle(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                    if (!cle.good()) cout<<"Critical error! Error clearing path bridge in "<<i<<"."<<endl;
+                                    cle.close();
+                                }
+                                bool mainsig[folders];
+                                for (ll i=1;i<=folders;i++) {
+                                    mainsig[i-1]=false;
+                                }
+                                while (!rmtasks.empty()) {
+                                    for (ll i=1;i<=folders;i++) {
+                                        if (!mainsig[i-1]) {
+                                            //Look for TE
+                                            //Look for main.signal
+                                            ifstream mainsigtest(db+"tmp/"+to_string(i)+"/main.signal");
+                                            if (mainsigtest.good()) {
+                                                string legit;
+                                                mainsigtest>>legit;
+                                                if (legit=="COM") {
+                                                    mainsig[i-1]=true;
+                                                    continue;
+                                                }
+                                            }
+                                            if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1000) {
+                                                stopProcess("hwexe"+to_string(i));
                                                 mainsig[i-1]=true;
-                                                continue;
                                             }
                                         }
-                                        if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1000) {
-                                            system(("killall hwexe"+to_string(i)).c_str());
-                                            mainsig[i-1]=true;
-                                        }
                                     }
-                                }
-                                for (ll i=1;i<=folders;i++) {
-                                    if (rmtasks.empty()) break;
-                                    if (mainsig[i-1]) { //if one of them are available...
-                                        mainsig[i-1]=false;
-                                        ofstream cle(db+"tmp/"+to_string(i)+"/main.signal");
-                                        if (!cle.good()) cout<<"Critical error! Error clearing main.signal in "<<i<<endl;
-                                        cle.close();
-                                        cle.open(db+"tmp/"+to_string(i)+"/ini.signal");
-                                        if (!cle.good()) cout<<"Critical error! Error clearing ini.signal in "<<i<<endl;
-                                        cle.close();
-                                        ll curtask=rmtasks.front();
-                                        rmtasks.pop();
-                                        //Write in files
-                                        ofstream foldout;
-                                        foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
-                                        if (!foldout.good()) cout<<"Critical error! Error accessing in.txt in "<<i<<endl;
-                                        if (indata[curtask-1].size()!=0) foldout<<indata[curtask-1][0];
-                                        for (ll j=1;j<indata[curtask-1].size();j++) {
-                                            foldout<<endl<<indata[curtask-1][j];
-                                        }
-                                        foldout.close();
-                                        //Write to the bridge
-                                        foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
-                                        if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<endl;
-                                        foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
-                                        foldout.close();
-                                        //Wait for ini.signal
-                                        while (true) {
-                                            ifstream signaltest(db+"tmp/"+to_string(i)+"/ini.signal");
-                                            string legit;
-                                            if (signaltest.good()) {
-                                                getline(signaltest,legit);
-                                                if (legit=="Ini") break;
-                                                signaltest.close();
+                                    for (ll i=1;i<=folders;i++) {
+                                        if (rmtasks.empty()) break;
+                                        if (mainsig[i-1]) { //if one of them are available...
+                                            mainsig[i-1]=false;
+                                            ofstream cle(db+"tmp/"+to_string(i)+"/main.signal");
+                                            if (!cle.good()) cout<<"Critical error! Error clearing main.signal in "<<i<<endl;
+                                            cle.close();
+                                            cle.open(db+"tmp/"+to_string(i)+"/ini.signal");
+                                            if (!cle.good()) cout<<"Critical error! Error clearing ini.signal in "<<i<<endl;
+                                            cle.close();
+                                            ll curtask=rmtasks.front();
+                                            rmtasks.pop();
+                                            //Write in files
+                                            ofstream foldout;
+                                            foldout.open(db+"tmp/"+to_string(i)+"/in.txt");
+                                            if (!foldout.good()) cout<<"Critical error! Error accessing in.txt in "<<i<<endl;
+                                            if (indata[curtask-1].size()!=0) foldout<<indata[curtask-1][0];
+                                            for (ll j=1;j<indata[curtask-1].size();j++) {
+                                                foldout<<endl<<indata[curtask-1][j];
                                             }
-                                            usleep(1e4);
+                                            foldout.close();
+                                            //Write to the bridge
+                                            foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
+                                            if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<endl;
+                                            foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
+                                            foldout.close();
+                                            //Wait for ini.signal
+                                            while (true) {
+                                                ifstream signaltest(db+"tmp/"+to_string(i)+"/ini.signal");
+                                                string legit;
+                                                if (signaltest.good()) {
+                                                    getline(signaltest,legit);
+                                                    if (legit=="Ini") break;
+                                                    signaltest.close();
+                                                }
+                                                usleep(1e4);
+                                            }
+                                            timer[i-1]=chrono::high_resolution_clock::now();
                                         }
-                                        timer[i-1]=chrono::high_resolution_clock::now();
                                     }
+                                    usleep(1e4);
                                 }
-                                usleep(1e4);
-                            }
-                            while (true) {
-                                bool canbk=true;
-                                for (ll i=1;i<=folders;i++) {
-                                    if (!mainsig[i-1]) {
-                                        canbk=false;
-                                        //Something is NOT DONE AND NOT TERMINATED
-                                        //Look for TE
-                                        ifstream mainsigtest(db+"tmp/"+to_string(i)+"/main.signal");
-                                        if (mainsigtest.good()) {
-                                            string legit;
-                                            getline(mainsigtest,legit);
-                                            if (legit=="COM") {
+                                while (true) {
+                                    bool canbk=true;
+                                    for (ll i=1;i<=folders;i++) {
+                                        if (!mainsig[i-1]) {
+                                            canbk=false;
+                                            //Something is NOT DONE AND NOT TERMINATED
+                                            //Look for TE
+                                            ifstream mainsigtest(db+"tmp/"+to_string(i)+"/main.signal");
+                                            if (mainsigtest.good()) {
+                                                string legit;
+                                                getline(mainsigtest,legit);
+                                                if (legit=="COM") {
+                                                    mainsig[i-1]=true;
+                                                    mainsigtest.close();
+                                                    continue;
+                                                }
+                                            }
+                                            mainsigtest.close();
+                                            if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1500) {
+                                                stopProcess("hwexe"+to_string(i));
                                                 mainsig[i-1]=true;
-                                                mainsigtest.close();
-                                                continue;
                                             }
-                                        }
-                                        mainsigtest.close();
-                                        if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1500) {
-                                            system(("killall hwexe"+to_string(i)).c_str());
-                                            mainsig[i-1]=true;
                                         }
                                     }
+                                    if (canbk) break;
+                                    usleep(1e4);
                                 }
-                                if (canbk) break;
-                                usleep(1e4);
-                            }
-                            
-                            //Compare output
-                            ll timeres[indata.size()];
-                            for (ll i=1;i<=indata.size();i++) {
-                                ifstream timeread(db+"tmp/time"+to_string(i)+".txt");
-                                if (!timeread.good()) timeres[i-1]=10000;
-                                else timeread>>timeres[i-1];
-                                timeread.close();
-                            }
-                            ll correct=0;
-                            cout<<"Test results:"<<endl;
-                            for (ll i=1;i<=indata.size();i++) {
-                                if (timeres[i-1]>1000) {
-                                    cout<<"#"<<i<<"-TE"<<endl;
-                                } else {
-                                    cout<<"#"<<i;
-                                    //Evaluation:Remove last blank line
-                                    vector<string>outcomp;
-                                    ifstream outputc(db+"tmp/out"+to_string(i)+".txt");
-                                    if (outputc.good()) {
-                                        while (!outputc.eof()) {
-                                            string tmp;
-                                            getline(outputc,tmp);
-                                            outcomp.push_back(tmp);
-                                        }
-                                        if (outcomp[outcomp.size()-1]=="") outcomp.erase(outcomp.begin()+outcomp.size()-1);
-                                        for (ll j=0;j<outcomp.size();j++) {
-                                            if (outcomp[j][outcomp[j].size()-1]==' ') {
-                                                outcomp[j].erase(outcomp[j].begin()+outcomp[j].size()-1);
+                                
+                                //Compare output
+                                ll timeres[indata.size()];
+                                for (ll i=1;i<=indata.size();i++) {
+                                    ifstream timeread(db+"tmp/time"+to_string(i)+".txt");
+                                    if (!timeread.good()) timeres[i-1]=10000;
+                                    else timeread>>timeres[i-1];
+                                    timeread.close();
+                                }
+                                ll correct=0;
+                                clc();
+                                cout<<"Test results:"<<endl;
+                                for (ll i=1;i<=indata.size();i++) {
+                                    if (timeres[i-1]>1000) {
+                                        cout<<"#"<<i<<"-TE"<<endl;
+                                    } else {
+                                        cout<<"#"<<i;
+                                        //Evaluation:Remove last blank line
+                                        vector<string>outcomp;
+                                        ifstream outputc(db+"tmp/out"+to_string(i)+".txt");
+                                        if (outputc.good()) {
+                                            while (!outputc.eof()) {
+                                                string tmp;
+                                                getline(outputc,tmp);
+                                                outcomp.push_back(tmp);
                                             }
-                                        }
-                                        if (outdata[i-1][outdata[i-1].size()-1]=="") outdata[i-1].erase(outdata[i-1].begin()+outdata[i-1].size()-1);
-                                        for (ll j=0;j<outdata[i-1].size();j++) {
-                                            if (outdata[i-1][j][outdata[i-1][j].size()-1]==' ') {
-                                                outdata[i-1][j].erase(outdata[i-1][j].begin()+outdata[i-1][j].size()-1);
+                                            if (outcomp[outcomp.size()-1]=="") outcomp.erase(outcomp.begin()+outcomp.size()-1);
+                                            for (ll j=0;j<outcomp.size();j++) {
+                                                if (outcomp[j][outcomp[j].size()-1]==' ') {
+                                                    outcomp[j].erase(outcomp[j].begin()+outcomp[j].size()-1);
+                                                }
                                             }
-                                        }
-                                        bool ac = true;
-                                        if (outdata[i-1].size()==outcomp.size()) {
+                                            if (outdata[i-1][outdata[i-1].size()-1]=="") outdata[i-1].erase(outdata[i-1].begin()+outdata[i-1].size()-1);
                                             for (ll j=0;j<outdata[i-1].size();j++) {
-                                                if (outdata[i-1][j].size()==outcomp[j].size()) {
-                                                    for (ll k=0;k<outdata[i-1][j].size();k++) {
-                                                        if (outdata[i-1][j][k]!=outcomp[j][k]) {
-                                                            ac=false;
-                                                            break;
-                                                        }
-                                                    }
-                                                } else ac=false;
+                                                if (outdata[i-1][j][outdata[i-1][j].size()-1]==' ') {
+                                                    outdata[i-1][j].erase(outdata[i-1][j].begin()+outdata[i-1][j].size()-1);
+                                                }
                                             }
-                                        } else ac = false;
-                                        if (ac) {cout<<"-AC:";correct++;}
-                                        else cout<<"-WA:";
-                                        cout<<timeres[i-1]<<"ms"<<endl;
-                                    } else cout<<"-RTE"<<endl;
-                                }
-                            }
-                            removeWithinFolder(db+"tmp/");
-                            ll score = round(((ld)correct/indata.size())*100.0);
-                            if (asmt[chosenID].score>score) cout<<"Your submission score:"<<score<<endl;
-                            asmt[chosenID].score=max(asmt[chosenID].score,score);
-                            cout<<"Your current score:"<<asmt[chosenID].score<<endl;
-                            if (score==100) {
-                                cor++;
-                                if (cor==1) cout<<"Achievement \"Success\" complete."<<endl;
-                                else if (cor==10) cout<<"Achievement \"More!\" complete."<<endl;
-                                else if (cor==100) cout<<"Achievement \"Unstoppable\" complete."<<endl;
-                                else if (cor==1000) cout<<"Achievement \"Godlike!\" complete."<<endl;
-                                if (sound) {
-                                    if (selaud.size()>0) {
-                                        ofstream songfname(db+"songbrd");
-                                        songfname<<audio[selaud[rand()%selaud.size()]].fname;
-                                        system(("open "+safespace(db+"acsound")).c_str());
+                                            bool ac = true;
+                                            if (outdata[i-1].size()==outcomp.size()) {
+                                                for (ll j=0;j<outdata[i-1].size();j++) {
+                                                    if (outdata[i-1][j].size()==outcomp[j].size()) {
+                                                        for (ll k=0;k<outdata[i-1][j].size();k++) {
+                                                            if (outdata[i-1][j][k]!=outcomp[j][k]) {
+                                                                ac=false;
+                                                                break;
+                                                            }
+                                                        }
+                                                    } else ac=false;
+                                                }
+                                            } else ac = false;
+                                            if (ac) {cout<<"-AC:";correct++;}
+                                            else cout<<"-WA:";
+                                            cout<<timeres[i-1]<<"ms"<<endl;
+                                        } else cout<<"-RTE"<<endl;
                                     }
                                 }
+                                removeWithinFolder(db+"tmp/");
+                                ll score = round(((ld)correct/indata.size())*100.0);
+                                if (asmt[chosenID].score>score) cout<<"Your submission score:"<<score<<endl;
+                                asmt[chosenID].score=max(asmt[chosenID].score,score);
+                                cout<<"Your current score:"<<asmt[chosenID].score<<endl;
+                                if (score==100) {
+                                    cor++;
+                                    if (cor==1) cout<<"Achievement \"Success\" complete."<<endl;
+                                    else if (cor==10) cout<<"Achievement \"More!\" complete."<<endl;
+                                    else if (cor==100) cout<<"Achievement \"Unstoppable\" complete."<<endl;
+                                    else if (cor==1000) cout<<"Achievement \"Godlike!\" complete."<<endl;
+                                    if (sound) {
+                                        if (selaud.size()>0) {
+                                            ofstream songfname(db+"songbrd");
+                                            songfname<<audio[selaud[rand()%selaud.size()]].fname;
+                                            launchNewProcess(db+"acsound"+exePost);
+                                        }
+                                    }
+                                } else {
+                                    if (incor==1) cout<<"Achievement \"You can try again\" complete."<<endl;
+                                    else if (incor==10) cout<<"Achievement \"Get up!\" complete."<<endl;
+                                    else if (incor==100) cout<<"Achievement \"Keep going!\" complete."<<endl;
+                                    else if (incor==1000) cout<<"Achievement \"Nearly there!\" complete."<<endl;
+                                    incor++;
+                                }
+                                if (autosave) savedata();
+                                cout<<"Press return to continue...";
+                                cin.get();
+                                if (SYS==APPL) stopProcess("acsound"+exePost);
                             } else {
-                                if (incor==1) cout<<"Achievement \"You can try again\" complete."<<endl;
-                                else if (incor==10) cout<<"Achievement \"Get up!\" complete."<<endl;
-                                else if (incor==100) cout<<"Achievement \"Keep going!\" complete."<<endl;
-                                else if (incor==1000) cout<<"Achievement \"Nearly there!\" complete."<<endl;
-                                incor++;
+                                cout<<"Compilation error."<<endl;
                             }
-                            if (autosave) savedata();
-                            cout<<"Press return to continue...";
-                            cin.get();
-                            inAppLaunch(db+"soundkill", "");
                         } else {
-                            cout<<"Compilation error."<<endl;
+                            cout<<"Code error!";
                         }
+                    } else if (hwsubans==to_string(delchc)) {
+                        asmt.erase(asmt.begin()+chosenID);
+                        remove((db+target).c_str());
+                        if (sccode) remove((db+target+".cpp").c_str());
+                        clc();
+                        break;
+                    } else if (hwsubans==to_string(subscclc)&&sccode) {
+                        system(("open -a Finder "+safespace(db+target+".cpp")).c_str());
+                    } else if (hwsubans==to_string(exitclc)) {
+                        clc();
+                        break;
                     } else {
-                        cout<<"Code error!";
+                        cout<<"Invalid response."<<endl;
                     }
-                } else if (hwsubans==to_string(delchc)) {
-                    asmt.erase(asmt.begin()+chosenID);
-                    remove((db+target).c_str());
-                    if (sccode) remove((db+target+".cpp").c_str());
-                    clc();
-                    break;
-                } else if (hwsubans==to_string(subscclc)&&sccode) {
-                    system(("open -a Finder "+safespace(db+target+".cpp")).c_str());
-                } else if (hwsubans==to_string(exitclc)) {
-                    clc();
-                    break;
-                } else {
-                    cout<<"Invalid response."<<endl;
-                }
+                } else cout<<"Invalid response."<<endl;
             }
         }
     }
