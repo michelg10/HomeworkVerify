@@ -17,19 +17,19 @@
 #include "aes.h"
 
 #if SYS==APPL
-#include "resources/openhelper.h"
-#include "resources/gpphelper.h"
+#include "resources/openhelperm.h"
+#include "resources/gpphelperm.h"
+#include "resources/hkillm.h"
 #elif SYS==WIN
-#include "resources/openhelper.cpp"
-#include "resources/gpphelper.cpp"
+#include "resources/openhelperw.cpp"
+#include "resources/gpphelperw.cpp"
+#include "resources/hkillw.cpp"
 #endif
 
 #if SYS==APPL
-#include "cores.h"
 #include "handclap.h"
 #include "highonlife.h"
 #include "acsound.h"
-#include "hkill.h"
 #include "irrlib.h"
 #include "soundsetup.h"
 #include "convtool.h"
@@ -233,31 +233,47 @@ void install(bool comple) {
         makeDir(db+"tmp2/");
         ofstream disExist(db+"tmp2/exists");
     }
-    //Install cores(39824),gpphelper(47424),openhelper(203840),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //MAC:Install gpphelper(104816),openhelper(203840),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //WIN:Install openhelper(1944946),gpphelper(1928070),hkill(1926234)
     string pstfx="";
     if (SYS==WIN) pstfx=".exe";
     ofstream installer;
     const unsigned char* tmp;
     
     installer.open(db+"gpphelper"+pstfx,ios::binary);
-    tmp = gpphelper();
-    for (ll i=0;i<47424;i++) installer<<tmp[i];
+#if SYS==APPL
+    tmp = gpphelperm();
+#elif SYS==WIN
+    tmp=gpphelperw();
+#endif
+    if (SYS==APPL) for (ll i=0;i<104816;i++) installer<<tmp[i];
+    else if (SYS==WIN) for (ll i=0;i<1928070;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"gpphelper"+pstfx);
     
     installer.open(db+"openhelper"+pstfx,ios::binary);
-    tmp = openhelper();
-    for (ll i=0;i<203840;i++) installer<<tmp[i];
+#if SYS==APPL
+    tmp = openhelperm();
+#elif SYS==WIN
+    tmp=openhelperw();
+#endif
+    if (SYS==APPL) for (ll i=0;i<203840;i++) installer<<tmp[i];
+    else if (SYS==WIN) for (ll i=0;i<1944946;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"openhelper"+pstfx);
     
+    installer.open(db+"hkill"+pstfx,ios::binary);
 #if SYS==APPL
-    tmp=cores();
-    installer.open(db+"cores"+pstfx,ios::binary);
-    for (ll i=0;i<39824;i++) installer<<tmp[i];
+    tmp = hkillm();
+#elif SYS==WIN
+    tmp=hkillw();
+#endif
+    if (SYS==APPL) for (ll i=0;i<50864;i++) installer<<tmp[i];
+    else if (SYS==WIN) for (ll i=0;i<1926234;i++) installer<<tmp[i];
     installer.close();
-    makeExe(db+"cores"+pstfx);
+    makeExe(db+"hkill"+pstfx);
     
+#if SYS==APPL
     installer.open(db+"U2PQX4CHY3SOJ31E.wav",ios::binary);
     tmp=handclap();
     for (ll i=0;i<1818048;i++) installer<<tmp[i];
@@ -273,12 +289,6 @@ void install(bool comple) {
     for (ll i=0;i<94848;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"acsound"+pstfx);
-    
-    installer.open(db+"hkill"+pstfx,ios::binary);
-    tmp = hkill();
-    for (ll i=0;i<50864;i++) installer<<tmp[i];
-    installer.close();
-    makeExe(db+"hkill"+pstfx);
     
     installer.open(db+"soundsetup"+pstfx,ios::binary);
     tmp=soundsetup();
@@ -415,6 +425,15 @@ void nml(string &s) {
             }
             if (rturn[rturn.size()-1]==' ') rturn.erase(rturn.size()-1);
             s=rturn;
+        }
+    } else if (SYS==WIN) {
+        if (s!="") {
+            if (s[0]=='"') {
+                s.erase(s.begin());
+            }
+            if (s[s.size()-1]=='"') {
+                s.erase(s.begin()+s.size()-1);
+            }
         }
     }
 }
@@ -770,6 +789,7 @@ int main() {
         ofstream mancreate(db+"contents.dwt");
         mancreate.close();
         helperver=helpertar;
+        savedata();
     }
     dbtest.close();
     //1.3 ONLY
@@ -931,13 +951,16 @@ int main() {
         helperver=helpertar;
     }
     if (SYS==APPL) {
-        inAppLaunch(db+"cores"+exePost,"");
+        system(("sysctl -n hw.ncpu >"+safespace(db+"cores.txt")).c_str());
         in.open(db+"cores.txt");
         if (in.good()) {
             string corefin;
             in>>corefin;
-            if (to_string(atoll(corefin.c_str()))==corefin) compcore=atoll(corefin.c_str());
-            else cout<<"System information gathering failed."<<endl;
+            if (to_string(atoll(corefin.c_str()))==corefin) {
+                compcore=atoll(corefin.c_str());
+                compcore/=2;
+                compcore=max(compcore,1ll);
+            } else cout<<"System information gathering failed."<<endl;
         } else cout<<"System information gathering failed."<<endl;
     }
     for (ll i=0;i<asmt.size();i++) {
@@ -1123,7 +1146,7 @@ int main() {
             }
         }
     }
-    cout<<"Alert! This is a beta, meaning that it is an untested version. Bugs may happen more often than normal."<<endl;
+    cout<<"Alert! This is a testing version of Homework. Bugs may happen more often than normal and some features may not function. Functions of features may change in later versions of Homework."<<endl;
     while (true) {
         ll chosenID=0;
         string target="";
@@ -1135,7 +1158,7 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to Homework(v1.5 beta 2) for C++ Programming Club. Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        cout<<"Welcome to Homework(v1.5 beta 3) for C++ Programming Club. Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         if (rand()%5==0) cout<<"Tip:"<<tips[rand()%tips.size()]<<endl;
         if (asmt.size()) cout<<"--------"<<endl;
         sort(asmt.begin(),asmt.end(),cmp);
@@ -2019,7 +2042,7 @@ int main() {
                         } else break;
                     }
                     if (contCnt>0) {
-                        ofstream fxOut(outpth);
+                        ofstream fxOut(outpth,ios::binary);
                         if (fxOut.good()) {
                             fxOut<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<contCnt<<endl<<"HwfxContents::DATASIZE"<<endl<<masterPkg.str().size()<<endl<<"HwfxContents::IV"<<endl;
                             unsigned char iv[16];
@@ -2424,8 +2447,7 @@ int main() {
                                 compilerArg=preferredCompiler+" ";
                             } else {
                                 if (SYS==APPL) compilerArg="g++";
-                                else if (SYS==WIN) compilerArg=safespace((string)"/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe"+"\\");
-                                if (SYS==WIN) compilerArg="\\"+compilerArg;
+                                else if (SYS==WIN) compilerArg=safespace("/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe");
                             }
                             compilerArg+=" ";
                             if (prefersCompiler||overrideDefaultFormat) {
@@ -2435,24 +2457,34 @@ int main() {
                                 //"%CODEPATH% -o %EXECPATH%"
                                 string innerpth=db+"tmp/preppedcode.cpp";
                                 stringstream reldinnerpth;
-                                for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
-                                innerpth=reldinnerpth.str();
-                                compilerArg+="\\\""+safespace(innerpth)+"\\\"";
-                                compilerArg+=" -o ";
-                                innerpth=db+"tmp/exe.exe";
-                                reldinnerpth.str("");
-                                for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
-                                innerpth=reldinnerpth.str();
-                                compilerArg+="\\\""+safespace(innerpth)+"\\\"";
+                                if (SYS==APPL) {
+                                    for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
+                                    innerpth=reldinnerpth.str();
+                                    compilerArg+="\""+safespace(innerpth)+"\"";
+                                    compilerArg+=" -o ";
+                                    innerpth=db+"tmp/exe"+exePost;
+                                    reldinnerpth.str("");
+                                    for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
+                                    innerpth=reldinnerpth.str();
+                                    compilerArg+="\""+safespace(innerpth)+"\"";
+                                } else if (SYS==WIN) {
+                                    compilerArg+=safespace(innerpth);
+                                    compilerArg+=" -o ";
+                                    innerpth=db+"tmp/exe"+exePost;
+                                    compilerArg+=safespace(innerpth);
+                                    compilerArg="\""+compilerArg+"\"";
+                                }
                             }
                             ofstream gppbrd(db+"tmp/gppbrd.bridge");
-//                            gppbrd<<db+"err"<<endl<<
-                            inAppLaunch(db+"gpphelper"+".exe","\""+db+"err"+"\" \""+compilerArg+"\"");
+                            gppbrd<<compilerArg;
+                            gppbrd.close();
 //                            cout<<"\""+db+"err"+"\" \""+compilerArg+"\""<<endl;
+                            inAppLaunch(db+"gpphelper"+exePost,username);
                             bool compile=true;
                             ifstream testcomp(db+"tmp/exe"+exePost);
                             if (testcomp.good()) compile=true;
                             else compile=false;
+                            testcomp.close();
                             if (compile) {
                                 //run multicore
                                 ll folders=min((ll)indata.size(),mltcore);
@@ -2540,7 +2572,7 @@ int main() {
                                     foldout.close();
                                     foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
                                     if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<"."<<endl;
-                                    foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
+                                    foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i<<exePost;
                                     foldout.close();
                                     //Wait for ini.signal
                                     while (true) {
@@ -2575,7 +2607,7 @@ int main() {
                                                 }
                                             }
                                             if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1000) {
-                                                stopProcess("hwexe"+to_string(i));
+                                                stopProcess("hwexe"+to_string(i)+exePost);
                                                 mainsig[i-1]=true;
                                             }
                                         }
@@ -2604,7 +2636,7 @@ int main() {
                                             //Write to the bridge
                                             foldout.open(db+"tmp/"+to_string(i)+"/pth.bridge");
                                             if (!foldout.good()) cout<<"Critical error! Error accessing path bridge in "<<i<<endl;
-                                            foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i;
+                                            foldout<<"COM"<<endl<<db<<"tmp/"<<i<<"/"<<endl<<curtask<<endl<<db<<"tmp/"<<endl<<"hwexe"<<i<<exePost;
                                             foldout.close();
                                             //Wait for ini.signal
                                             while (true) {
@@ -2641,7 +2673,7 @@ int main() {
                                             }
                                             mainsigtest.close();
                                             if (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - timer[i-1]).count()>1500) {
-                                                stopProcess("hwexe"+to_string(i));
+                                                stopProcess("hwexe"+to_string(i)+exePost);
                                                 mainsig[i-1]=true;
                                             }
                                         }

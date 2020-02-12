@@ -12,12 +12,14 @@
 		F077F316235D62E80054FC47 /* handclap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F077F314235D62E80054FC47 /* handclap.cpp */; };
 		F077F319235D63210054FC47 /* acsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F077F318235D63210054FC47 /* acsound.cpp */; };
 		F077F31C235D64E90054FC47 /* highonlife.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F077F31A235D64E90054FC47 /* highonlife.cpp */; };
-		F0A7CC9023117543007AB3DE /* cores.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CC8E23117543007AB3DE /* cores.cpp */; };
-		F0A7CC9323117628007AB3DE /* gpphelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CC9123117628007AB3DE /* gpphelper.cpp */; };
-		F0A7CC9623117671007AB3DE /* openhelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0A7CC9523117671007AB3DE /* openhelper.cpp */; };
 		F0DCF34E2339AAF400F30416 /* irrlib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0DCF34D2339AAF400F30416 /* irrlib.cpp */; };
 		F0DCF3642339CCA500F30416 /* soundsetup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0DCF3622339CCA400F30416 /* soundsetup.cpp */; };
-		F0F4C9FB23EAE7EA00E83DD4 /* hkill.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0F4C9FA23EAE7E900E83DD4 /* hkill.cpp */; };
+		F0E92C7623F4230C00643C52 /* openhelperw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0E92C6A23F4230B00643C52 /* openhelperw.cpp */; };
+		F0E92C7723F4230C00643C52 /* gpphelperw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0E92C6D23F4230B00643C52 /* gpphelperw.cpp */; };
+		F0E92C7823F4230C00643C52 /* hkillw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0E92C7023F4230B00643C52 /* hkillw.cpp */; };
+		F0E92C7923F4230C00643C52 /* hkillm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0E92C7123F4230B00643C52 /* hkillm.cpp */; };
+		F0E92C7A23F4230C00643C52 /* gpphelperm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0E92C7323F4230C00643C52 /* gpphelperm.cpp */; };
+		F0E92C7B23F4230C00643C52 /* openhelperm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0E92C7523F4230C00643C52 /* openhelperm.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -39,26 +41,30 @@
 		F04D338D23E1BBC500B2D421 /* soundsetup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = soundsetup.h; sourceTree = "<group>"; };
 		F04D338E23E1BBC500B2D421 /* song.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = song.h; sourceTree = "<group>"; };
 		F04D338F23E1BBC500B2D421 /* acsound.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = acsound.h; sourceTree = "<group>"; };
-		F04D339023E1BBC500B2D421 /* cores.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cores.h; sourceTree = "<group>"; };
 		F04D339123E1BBC500B2D421 /* highonlife.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = highonlife.h; sourceTree = "<group>"; };
 		F04D339223E1BBC500B2D421 /* irrlib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = irrlib.h; sourceTree = "<group>"; };
-		F04D339323E1BBC500B2D421 /* gpphelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gpphelper.h; sourceTree = "<group>"; };
 		F04D339523E1BBC500B2D421 /* convtool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = convtool.h; sourceTree = "<group>"; };
-		F04D339623E1BBC500B2D421 /* openhelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = openhelper.h; sourceTree = "<group>"; };
 		F06224F823671B1600C13695 /* convtool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = convtool.cpp; sourceTree = "<group>"; };
 		F077F314235D62E80054FC47 /* handclap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = handclap.cpp; sourceTree = "<group>"; };
 		F077F318235D63210054FC47 /* acsound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = acsound.cpp; sourceTree = "<group>"; };
 		F077F31A235D64E90054FC47 /* highonlife.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = highonlife.cpp; sourceTree = "<group>"; };
 		F079696323CEDEF400AA1217 /* aes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = aes.h; sourceTree = "<group>"; };
 		F079696423CEDF1900AA1217 /* aes_lookup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = aes_lookup.h; sourceTree = "<group>"; };
-		F0A7CC8E23117543007AB3DE /* cores.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cores.cpp; sourceTree = "<group>"; };
-		F0A7CC9123117628007AB3DE /* gpphelper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = gpphelper.cpp; sourceTree = "<group>"; };
-		F0A7CC9523117671007AB3DE /* openhelper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = openhelper.cpp; sourceTree = "<group>"; };
 		F0A7CCB123117E59007AB3DE /* libirrklang.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libirrklang.dylib; sourceTree = "<group>"; };
 		F0DCF34D2339AAF400F30416 /* irrlib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = irrlib.cpp; sourceTree = "<group>"; };
 		F0DCF3622339CCA400F30416 /* soundsetup.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = soundsetup.cpp; sourceTree = "<group>"; };
-		F0F4C9F923EAE7E900E83DD4 /* hkill.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hkill.h; sourceTree = "<group>"; };
-		F0F4C9FA23EAE7E900E83DD4 /* hkill.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hkill.cpp; sourceTree = "<group>"; };
+		F0E92C6A23F4230B00643C52 /* openhelperw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = openhelperw.cpp; path = HomeworkVerify/resources/openhelperw.cpp; sourceTree = SOURCE_ROOT; };
+		F0E92C6B23F4230B00643C52 /* openhelperm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = openhelperm.h; path = HomeworkVerify/resources/openhelperm.h; sourceTree = SOURCE_ROOT; };
+		F0E92C6C23F4230B00643C52 /* openhelperw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = openhelperw.h; path = HomeworkVerify/resources/openhelperw.h; sourceTree = SOURCE_ROOT; };
+		F0E92C6D23F4230B00643C52 /* gpphelperw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gpphelperw.cpp; path = HomeworkVerify/resources/gpphelperw.cpp; sourceTree = SOURCE_ROOT; };
+		F0E92C6E23F4230B00643C52 /* gpphelperm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gpphelperm.h; path = HomeworkVerify/resources/gpphelperm.h; sourceTree = SOURCE_ROOT; };
+		F0E92C6F23F4230B00643C52 /* hkillm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hkillm.h; path = HomeworkVerify/resources/hkillm.h; sourceTree = SOURCE_ROOT; };
+		F0E92C7023F4230B00643C52 /* hkillw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hkillw.cpp; path = HomeworkVerify/resources/hkillw.cpp; sourceTree = SOURCE_ROOT; };
+		F0E92C7123F4230B00643C52 /* hkillm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hkillm.cpp; path = HomeworkVerify/resources/hkillm.cpp; sourceTree = SOURCE_ROOT; };
+		F0E92C7223F4230C00643C52 /* hkillw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hkillw.h; path = HomeworkVerify/resources/hkillw.h; sourceTree = SOURCE_ROOT; };
+		F0E92C7323F4230C00643C52 /* gpphelperm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gpphelperm.cpp; path = HomeworkVerify/resources/gpphelperm.cpp; sourceTree = SOURCE_ROOT; };
+		F0E92C7423F4230C00643C52 /* gpphelperw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gpphelperw.h; path = HomeworkVerify/resources/gpphelperw.h; sourceTree = SOURCE_ROOT; };
+		F0E92C7523F4230C00643C52 /* openhelperm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = openhelperm.cpp; path = HomeworkVerify/resources/openhelperm.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,27 +109,31 @@
 		F080189A224EFB4900F2B74D /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				F0F4C9FA23EAE7E900E83DD4 /* hkill.cpp */,
-				F0F4C9F923EAE7E900E83DD4 /* hkill.h */,
 				F06224F823671B1600C13695 /* convtool.cpp */,
 				F077F318235D63210054FC47 /* acsound.cpp */,
 				F077F314235D62E80054FC47 /* handclap.cpp */,
 				F077F31A235D64E90054FC47 /* highonlife.cpp */,
-				F0A7CC8E23117543007AB3DE /* cores.cpp */,
 				F04D338F23E1BBC500B2D421 /* acsound.h */,
 				F04D339523E1BBC500B2D421 /* convtool.h */,
-				F04D339023E1BBC500B2D421 /* cores.h */,
-				F04D339323E1BBC500B2D421 /* gpphelper.h */,
 				F04D338C23E1BBC500B2D421 /* handclap.h */,
 				F04D339123E1BBC500B2D421 /* highonlife.h */,
 				F04D339223E1BBC500B2D421 /* irrlib.h */,
-				F04D339623E1BBC500B2D421 /* openhelper.h */,
 				F04D338E23E1BBC500B2D421 /* song.h */,
 				F04D338D23E1BBC500B2D421 /* soundsetup.h */,
-				F0A7CC9123117628007AB3DE /* gpphelper.cpp */,
-				F0A7CC9523117671007AB3DE /* openhelper.cpp */,
 				F0DCF34D2339AAF400F30416 /* irrlib.cpp */,
 				F0DCF3622339CCA400F30416 /* soundsetup.cpp */,
+				F0E92C7323F4230C00643C52 /* gpphelperm.cpp */,
+				F0E92C6E23F4230B00643C52 /* gpphelperm.h */,
+				F0E92C6D23F4230B00643C52 /* gpphelperw.cpp */,
+				F0E92C7423F4230C00643C52 /* gpphelperw.h */,
+				F0E92C7123F4230B00643C52 /* hkillm.cpp */,
+				F0E92C6F23F4230B00643C52 /* hkillm.h */,
+				F0E92C7023F4230B00643C52 /* hkillw.cpp */,
+				F0E92C7223F4230C00643C52 /* hkillw.h */,
+				F0E92C7523F4230C00643C52 /* openhelperm.cpp */,
+				F0E92C6B23F4230B00643C52 /* openhelperm.h */,
+				F0E92C6A23F4230B00643C52 /* openhelperw.cpp */,
+				F0E92C6C23F4230B00643C52 /* openhelperw.h */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -193,16 +203,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				F077F31C235D64E90054FC47 /* highonlife.cpp in Sources */,
+				F0E92C7B23F4230C00643C52 /* openhelperm.cpp in Sources */,
+				F0E92C7623F4230C00643C52 /* openhelperw.cpp in Sources */,
 				F077F319235D63210054FC47 /* acsound.cpp in Sources */,
-				F0A7CC9023117543007AB3DE /* cores.cpp in Sources */,
-				F0A7CC9623117671007AB3DE /* openhelper.cpp in Sources */,
+				F0E92C7A23F4230C00643C52 /* gpphelperm.cpp in Sources */,
 				F077F316235D62E80054FC47 /* handclap.cpp in Sources */,
+				F0E92C7823F4230C00643C52 /* hkillw.cpp in Sources */,
 				F0447B78224A5D1900B57D98 /* main.cpp in Sources */,
-				F0A7CC9323117628007AB3DE /* gpphelper.cpp in Sources */,
 				F0DCF3642339CCA500F30416 /* soundsetup.cpp in Sources */,
 				F06224F923671B1600C13695 /* convtool.cpp in Sources */,
-				F0F4C9FB23EAE7EA00E83DD4 /* hkill.cpp in Sources */,
+				F0E92C7923F4230C00643C52 /* hkillm.cpp in Sources */,
 				F0DCF34E2339AAF400F30416 /* irrlib.cpp in Sources */,
+				F0E92C7723F4230C00643C52 /* gpphelperw.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
