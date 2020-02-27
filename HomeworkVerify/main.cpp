@@ -1,4 +1,4 @@
-#define CANUSEFS 0
+#define CANUSEFS 1
 #define APPL 0
 #define WIN 1
 #define SYS 0
@@ -52,15 +52,15 @@ struct hw {
     string name;
     string date;
 };
-string safespace(string s) {
+string safespace(string s,int OS=SYS) {
     string rturn;
-    if (SYS==APPL) {
+    if (OS==APPL) {
         map<char,bool>toEscape;
         toEscape['~']=toEscape['=']=toEscape['[']=toEscape[']']=toEscape['{']=toEscape['}']=toEscape['\\']=toEscape['|']=toEscape[';']=toEscape['\'']=toEscape['"']=toEscape['<']=toEscape['>']=toEscape['?']=toEscape[' ']=toEscape['!']=toEscape['#']=toEscape['%']=toEscape['&']=toEscape['*']=toEscape['(']=toEscape[')']=1;
         stringstream ss;
         for (ll i=0;i<s.length();i++) toEscape[s[i]] ? ss<<"\\"<<s[i] : ss<<s[i];
         rturn=ss.str();
-    } else if (SYS==WIN) {
+    } else if (OS==WIN) {
         rturn="\""+s+"\"";
         for (ll i=0;i<rturn.size();i++) if (rturn[i]=='/') rturn[i]='\\';
     }
@@ -122,18 +122,18 @@ bool readf(vector<string>&s,string path) {
     return 1;
 }
 #if SYS==APPL
-string username = getlogin();
+string fname = getlogin();
 #endif
 #if SYS==WIN
 string username;
 #endif
 string db;
 //MARK:SYSTEM CALLS
-void inAppLaunch(string s,string args) {
-    if (SYS==APPL) {
+void inAppLaunch(string s,string args,int OS=SYS) {
+    if (OS==APPL) {
         if (args=="") system((safespace(s)).c_str());
         else system((safespace(s)+" "+args).c_str());
-    } else {
+    } else if (OS==WIN) {
         if (args=="") system((safespace(s)).c_str());
         else system((safespace(s)+" "+args).c_str());
     }
@@ -141,20 +141,20 @@ void inAppLaunch(string s,string args) {
 void stopProcess(string processName) {
     inAppLaunch(db+"hkill",processName);
 }
-void launchNewProcess(string s) {
-    if (SYS==APPL) {
+void launchNewProcess(string s,int OS=SYS) {
+    if (OS==APPL) {
         system(("open "+safespace(s)).c_str());
-    } else if (SYS==WIN) {
+    } else if (OS==WIN) {
         for (ll i=0;i<s.size();i++) {
             if (s[i]=='/') s[i]='\\';
         }
         system(("start "+s).c_str());
     }
 }
-void clc() {
-    if (SYS==APPL) {
+void clc(int OS=SYS) {
+    if (OS==APPL) {
         system("clear");
-    } else if (SYS==WIN) {
+    } else if (OS==WIN) {
         system("cls");
     }
 }
@@ -165,47 +165,47 @@ void makeDir(string pathWithSlash) {
     system(("mkdir "+safespace(pathWithSlash)).c_str());
 #endif
 }
-void removeWithinFolder(string pathWithSlash) {
+void removeWithinFolder(string pathWithSlash,int OS=SYS) {
 #if CANUSEFS
     fs::remove_all(pathWithSlash);
     fs::create_directory(pathWithSlash);
 #else
-    if (SYS==APPL) {
+    if (OS==APPL) {
         system(("rm -r "+safespace(pathWithSlash)+"*").c_str());
-    } else if (SYS==WIN) {
+    } else if (OS==WIN) {
         system(("rd /S /Q "+safespace(pathWithSlash)).c_str());
         makeDir(pathWithSlash);
     }
 #endif
 }
-void makeExe(string pth) {
-    if (SYS==APPL) {
+void makeExe(string pth,int OS=SYS) {
+    if (OS==APPL) {
 #if CANUSEFS
         fs::permissions(pth,fs::perms::all);
 #else
         system(("chmod 755 "+safespace(pth)).c_str());
 #endif
-    } else if (SYS==WIN) {
+    } else if (OS==WIN) {
         //do nothing
     }
 }
-void removeFolder(string pathWithSlash) {
+void removeFolder(string pathWithSlash,int OS=SYS) {
 #if CANUSEFS
     fs::remove_all(pathWithSlash);
 #else
-    if (SYS==APPL) {
+    if (OS==APPL) {
         system(("rm -r "+safespace(pathWithSlash)).c_str());
-    } else {
+    } else if (OS==WIN) {
         system(("rd /S /Q "+safespace(pathWithSlash)).c_str());
     }
 #endif
 }
-void unzip(string from, string to) { //COMPATIBILITY ONLY
-    if (SYS==APPL) {
+void unzip(string from, string to,int OS=SYS) { //COMPATIBILITY ONLY
+    if (OS==APPL) {
         system(("unzip -o -qq "+safespace(to)+" -d "+safespace(from)).c_str());
-    }
+    } else cout<<"Error! Unexpected call of UNZIP on a non-macOS system!"<<endl;
 }
-void copyf(string from, string to, bool ovrwrite) {
+void copyf(string from, string to, bool ovrwrite,int OS=SYS) {
 #if CANUSEFS
     ifstream checkifex(to);
     if (!checkifex.good()) {
@@ -217,9 +217,9 @@ void copyf(string from, string to, bool ovrwrite) {
         fs::copy(from,to);
     }
 #else
-    if (SYS==APPL) {
+    if (OS==APPL) {
         system(("cp "+safespace(from)+" "+safespace(to)).c_str());
-    } else if (SYS==WIN) {
+    } else if (OS==WIN) {
         system(("copy /y "+safespace(from)+" "+safespace(to)+" >nul 2>nul").c_str());
     }
 #endif
@@ -335,7 +335,7 @@ string iv = "755CA3572C3FAC78";
 string salt = "8C55A67258E39056";
 string cmdenc = "openssl enc -aes-256-cbc -K "+key+" -iv "+iv+" -S "+salt;
 //MARK:END UTILITIES
-ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers,prefersCompiler,overrideDefaultFormat;
+ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers,prefersCompiler,overrideDefaultFormat,debugMd;
 string lockedf,vers,expvers,preferredCompiler,compilerFormat;
 unsigned char aesKey[32]={28,57,67,10,127,108,14,197,41,73,79,16,242,2,85,227,120,13,53,121,23,109,231,129,210,147,11,128,115,1,242,150};
 map<ll,char>randname;
@@ -441,13 +441,13 @@ void changelog() {
     cout<<"What's changed in v1.5:"<<endl<<"Sandboxing for security"<<endl<<"Answer files"<<endl<<"Limit items"<<endl<<"Batch evaluation"<<endl<<"New cross platform file format:hwfx"<<endl<<"Bug fixes and improvements"<<endl;
 }
 //MARK:MAIN
-ll pkgImport(ifstream &rdpkg, stringstream &newPkg, string impItm) {
+ll pkgImport(ifstream &rdpkg, string &newPkg, string impItm) {
     stringstream checkNef;
     if (rdpkg.good()) {
         checkNef<<rdpkg.rdbuf();
         string nef=checkNef.str();
         if (nef.find("HwfxContents::")==string::npos) {
-            newPkg<<nef<<endl;
+            newPkg+=nef+'\n';
         } else {
             cout<<"Error! "<<impItm<<" file contains keyword \"HwfxContents::\"!"<<endl;
             return -1;
@@ -458,25 +458,24 @@ ll pkgImport(ifstream &rdpkg, stringstream &newPkg, string impItm) {
     }
     return 0;
 }
-void writeHwfx(string &pkgpth,bool &impFail,string &disTtl,stringstream &newPkg) {
+void writeHwfx(string &pkgpth,bool &impFail,string &disTtl,string &newPkg) {
     impFail=false;
-    newPkg.str("");
-    newPkg<<"HwfxContents::Payload"<<endl<<"HwfxContents::Title"<<endl;
+    newPkg="HwfxContents::Payload\nHwfxContents::Title\n";
     ifstream rdpkg(pkgpth+"/title.txt",ios::binary);
     if (pkgImport(rdpkg,newPkg,"Title")==-1) impFail=true;
     rdpkg.close();
     rdpkg.open(pkgpth+"/title.txt");
     if (rdpkg.good()) getline(rdpkg,disTtl);
     rdpkg.close();
-    newPkg<<"HwfxContents::Description"<<endl;
+    newPkg+="HwfxContents::Description\n";
     rdpkg.open(pkgpth+"/description.txt");
     if (pkgImport(rdpkg,newPkg,"Description")==-1) impFail=true;
     rdpkg.close();
-    newPkg<<"HwfxContents::InputDes"<<endl;
+    newPkg+="HwfxContents::InputDes\n";
     rdpkg.open(pkgpth+"/in.txt");
     if (pkgImport(rdpkg,newPkg,"Input")==-1) impFail=true;
     rdpkg.close();
-    newPkg<<"HwfxContents::OutputDes"<<endl;
+    newPkg+="HwfxContents::OutputDes\n";
     rdpkg.open(pkgpth+"/out.txt");
     if (pkgImport(rdpkg,newPkg, "Output")==-1) impFail=true;
     rdpkg.close();
@@ -484,12 +483,12 @@ void writeHwfx(string &pkgpth,bool &impFail,string &disTtl,stringstream &newPkg)
     while (true) {
         ifstream intst(pkgpth+"/exin"+to_string(expkgs)+".txt"),outtst(pkgpth+"/exout"+to_string(expkgs)+".txt");
         if (intst.good()&&outtst.good()) {
-            newPkg<<"HwfxContents::ExampleInput"<<to_string(expkgs)<<endl;
+            newPkg+="HwfxContents::EXIN"+to_string(expkgs)+"\n";
             if (pkgImport(intst,newPkg,"Example input "+to_string(expkgs))==-1) {
                 impFail=true;
                 break;
             }
-            newPkg<<"HwfxContents::ExampleOutput"<<to_string(expkgs)<<endl;
+            newPkg+="HwfxContents::EXOU"+to_string(expkgs)+"\n";
             if (pkgImport(outtst,newPkg,"Example output "+to_string(expkgs))==-1) {
                 impFail=true;
                 break;
@@ -510,12 +509,12 @@ void writeHwfx(string &pkgpth,bool &impFail,string &disTtl,stringstream &newPkg)
     while (true) {
         ifstream intst(pkgpth+"/in"+to_string(testSets)+".txt"),outtst(pkgpth+"/out"+to_string(testSets)+".txt");
         if (intst.good()&&outtst.good()) {
-            newPkg<<"HwfxContents::InputSet"<<to_string(testSets)<<endl;
+            newPkg+="HwfxContents::INST"+to_string(testSets)+'\n';
             if (pkgImport(intst,newPkg,"Input "+to_string(testSets))==-1) {
                 impFail=true;
                 break;
             }
-            newPkg<<"HwfxContents::OutputSet"<<to_string(testSets)<<endl;
+            newPkg+="HwfxContents::OUST"+to_string(testSets)+'\n';
             if (pkgImport(outtst,newPkg,"Output "+to_string(testSets))==-1) {
                 impFail=true;
                 break;
@@ -540,24 +539,81 @@ void cleanStr(string &s) {
     }
     s.erase(s.begin()+s.size()-sl,s.end());
 }
-bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
+bool writeCore(string &fname,string &dtplyd) {
+    ll newLen=dtplyd.size();
+    newLen=ceil(newLen/16.0)*16;
+    unsigned char* newMsg=new(nothrow) unsigned char[newLen];
+    if (!newMsg) {
+        cout<<"Error MEMALLOC"<<endl;
+        return 1;
+    }
+    ofstream miniF(fname,ios::binary);
+    if (miniF.good()) {
+        miniF<<"HwfxContents::START"<<endl<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<"1"<<endl<<"HwfxContents::DATASIZE"<<endl<<dtplyd.size()<<endl<<"HwfxContents::IVCNT"<<endl;
+        ll blks=newLen/16;
+        ll const mltCorem=min(8ll,blks);
+        miniF<<mltCorem<<endl;
+        vector<unsigned char*>iv;
+        for (ll i=0;i<mltCorem;i++) {
+            unsigned char* genIvTmp=new unsigned char[16];
+            for (ll j=0;j<16;j++) {
+                genIvTmp[j]=rand()%256;
+            }
+            iv.push_back(genIvTmp);
+        }
+        for (ll i=0;i<iv.size();i++) {
+            miniF<<"HwfxContents::IV"+to_string(i)<<endl;
+            for (ll j=0;j<16;j++) miniF<<(int)iv[i][j]<<endl;
+        }
+        miniF<<"HwfxContents::PAYLOAD"<<endl;
+        for (ll i=0;i<dtplyd.size();i++) newMsg[i]=dtplyd[i];
+        for (ll i=dtplyd.size();i<newLen;i++) newMsg[i]=0;
+        dtplyd="";
+        aes_encrypt(newMsg, newLen, aesKey, 32, iv);
+        for (ll i=0;i<newLen;i++) miniF<<newMsg[i];
+        delete[] newMsg;
+        for (ll i=0;i<mltCorem;i++) delete[] iv[i];
+    } else {
+        cout<<"Unable to write to out file"<<endl;
+        return 1;
+    }
+    miniF.close();
+    return 0;
+}
+bool readHwfxCore(vector<string>&reLd,string pkgpth,bool &vq) {
     //undo encryption, encrypt again, then throw it into .hwfx files. It has the exact same header format.
+    auto c = chrono::high_resolution_clock::now();
     ifstream importHwfx(pkgpth,ios::binary);
     vector<string>fHeader;
     while (true) {
         if (importHwfx.eof()) return 0;
         string impTmp;
         getline(importHwfx,impTmp);
-        cleanStr(impTmp);
         if (impTmp=="HwfxContents::PAYLOAD") break;
         else fHeader.push_back(impTmp);
     }
-    string fplyd((std::istreambuf_iterator<char>(importHwfx)),istreambuf_iterator<char>());
+    ll curPos=importHwfx.tellg();
+    importHwfx.seekg(0,ios::end);
+    ll disLen=(ll)importHwfx.tellg()-curPos;
+    ll newLen=ceil(disLen/16.0)*16;
+    unsigned char* decPkg=new(nothrow) unsigned char[newLen];
+    if (!decPkg) {
+        cout<<"Error MEMALLOC!"<<endl;
+        return 0;
+    }
     importHwfx.close();
-    unsigned char iv[16]={0};
+    FILE *impE = fopen(pkgpth.c_str(),"rb");
+    fseek(impE,curPos,SEEK_SET);
+    fread(decPkg,1,disLen,impE);
+    fclose(impE);
+    for (ll i=disLen;i<newLen;i++) decPkg[i]=0;
+                    
+    vector<unsigned char *>iv;
     bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
     string fvers="";
-    ll dtsz=0,ascnt=1;
+    ll dtsz=0,ascnt=1,ivcnt=1;
+    map<ll,ll>ivCntPlc;
+    bool goodImp=true;
     for (ll i=0;i<fHeader.size();i++) {
         if (fHeader[i]=="HwfxContents::FVERS") {
             if (i+1!=fHeader[i].size()) {
@@ -569,53 +625,128 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
                 dtsz=atoll(fHeader[++i].c_str());
                 gotDtsz=true;
             }
-        } else if (fHeader[i]=="HwfxContents::IV") {
-            for (ll j=i+1;j<=i+16;j++) {
-                iv[j-i-1]=atoll(fHeader[j].c_str());
-                if (j+1==fHeader.size()&&j-i-1!=15) {
-                    cout<<"Error reading IV!"<<endl;
-                    break;
-                }
+        } else if (fHeader[i]=="HwfxContents::IVCNT") {
+            if (i+1!=fHeader.size()) {
+                ivcnt=atoll(fHeader[++i].c_str());
+                gotIv=true;
             }
-            i+=17;
-            gotIv=true;
         } else if (fHeader[i]=="HwfxContents::PKGCNT") {
             if (i+1!=fHeader.size()) {
                 ascnt=atoll(fHeader[++i].c_str());
                 gotCnt=true;
             }
+        } else if (fHeader[i].size()>=16) {
+            if (fHeader[i].substr(0,16)=="HwfxContents::IV") {
+                ll ivNum=atoll(fHeader[i].substr(16).c_str());
+                if (ivCntPlc.find(ivNum)==ivCntPlc.end()) {
+                    ivCntPlc[ivNum]=i;
+                } else {
+                    cout<<"IV Error! (Error 1)"<<endl;
+                    goodImp=false;
+                }
+            }
         }
     }
-    if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
-    bool goodImp=true;
-    if (!gotIv) {
-        cout<<"Error reading IV!"<<endl;
+    if (ivCntPlc.begin()->first==0&&(--ivCntPlc.end())->first==ivCntPlc.size()-1) {
+        for (ll i=0;i<ivCntPlc.size();i++) {
+            ll startMkr=ivCntPlc[i]+1;
+            unsigned char *tmpIv=new unsigned char[16];
+            for (ll j=startMkr;j<startMkr+16;j++) {
+                if (j<fHeader.size()) {
+                    if (atoll(fHeader[j].c_str())>=256||atoll(fHeader[j].c_str())<0) {
+                        cout<<"IV Error! (Error 3)"<<endl;
+                        goodImp=false;
+                        delete[] tmpIv;
+                        break;
+                    }
+                    tmpIv[j-startMkr]=atoll(fHeader[j].c_str());
+                } else {
+                    cout<<"IV Error! (Error 4)"<<endl;
+                    goodImp=false;
+                    delete[] tmpIv;
+                    break;
+                }
+            }
+            if (!goodImp) break;
+            iv.push_back(tmpIv);
+        }
+    } else {
+        cout<<"IV Error! (Error 5)"<<endl;
         goodImp=false;
+    }
+    if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
+    if (!gotIv) {
+        cout<<"Error reading IV! This may be a dated Homework package."<<endl;
     }
     if (!gotFvers) cout<<"Error reading file version!"<<endl;
     if (!gotDtsz) {
         cout<<"Error reading file size!"<<endl;
         goodImp=false;
     }
-    if (!goodImp) return 0;
+    if (!goodImp) {
+        for (ll i=0;i<iv.size();i++){
+            delete[] iv[i];
+        }
+        return 0;
+    }
     if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
-    ll newLen=ceil(dtsz/16.0)*16;
-    unsigned char* decPkg=new(nothrow) unsigned char[newLen];
-    for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
-    for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
+    if (disLen<dtsz) {
+        cout<<"Error! File size does not match!"<<endl;
+        return 0;
+    }
+    if (iv.size()*16>newLen) {
+        cout<<"Error! File size does not match!"<<endl;
+        for (ll i=0;i<iv.size();i++){
+            delete[] iv[i];
+        }
+        return 0;
+    }
+    if (debugMd) {
+        cout<<"Pre-parsing done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
+        c = chrono::high_resolution_clock::now();
+    }
     aes_decrypt(decPkg, newLen, aesKey, 32, iv);
     
-    vector<string>reLd;
+    if (debugMd) {
+        cout<<"Starting AES E/D debug test..."<<endl;
+        string aesIntegrity="gbubiywnorcu8m0cu90mcqw89m0u80qcqwiu90-,ciq90-r,cq-w,9nr0v7btq 8=ew90q--ajedijoaeuvt4w38n7478weunr8v8u0n9reuwcwumquqv4un9vt4378907n8tcn8ewquiounrqiopumvaiemivpmiopuvnyq9ew7q8907dq3w89puncepiouqpucionqewuincperw ";
+        ll aesIntegrityNewSz=ceil(aesIntegrity.size()/16.0)*16;
+        unsigned char* aesIntegrityTest=new unsigned char[aesIntegrityNewSz];
+        cout<<"SZ "<<aesIntegrity.size()<<endl;;
+        for (ll i=0;i<aesIntegrity.size();i++) aesIntegrityTest[i]=aesIntegrity[i];
+        for (ll i=aesIntegrity.size();i<aesIntegrityNewSz;i++) aesIntegrityTest[i]=0;
+        aes_encrypt(aesIntegrityTest, aesIntegrityNewSz, aesKey, 32, iv);
+        aes_decrypt(aesIntegrityTest, aesIntegrityNewSz, aesKey, 32, iv);
+        string aesIntegrityspit="";
+        for (ll i=0;i<aesIntegrityNewSz&&aesIntegrityTest[i]!='\0';i++) {
+            aesIntegrityspit+=aesIntegrityTest[i];
+        }
+        if (aesIntegrityspit!=aesIntegrity) {
+            cout<<"INTEGRITY ERROR!"<<endl<<aesIntegrityspit<<endl<<aesIntegrity<<endl;
+        }
+        delete[] aesIntegrityTest;
+    }
+    
+    for (ll i=0;i<iv.size();i++) delete[] iv[i];
+    if (debugMd) {
+        cout<<"Decryption done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
+    }
     string ft="";
-    for (ll i=0;i<dtsz;i++)
+    for (ll i=0;i<dtsz;i++) {
         if (decPkg[i]=='\n') {
             reLd.push_back(ft);
             ft="";
         } else ft+=decPkg[i];
+    }
     if (ft.size()) reLd.push_back(ft);
-    ll parsel=0;
     if (ascnt==1) vq=true;
     delete[] decPkg;
+    return 1;
+}
+bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
+    vector<string>reLd;
+    readHwfxCore(reLd,pkgpth,vq);
+    ll parsel=0;
     while (true) {
         if (parsel>=reLd.size()) break;
         ll parserr=reLd.size();
@@ -623,32 +754,25 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
             if (reLd[i]=="HwfxContents::Payload") parserr=i;
         }
         string dtplyd;
-        string nm;
+        string nm="";
         for (ll i=parsel;i<parserr;i++) dtplyd+=reLd[i]+'\n';
         for (ll i=parsel;i<parserr;i++) {
-            if (reLd[i]=="HwfxContents::Title"&&i+1<parserr) nm=reLd[i+1];
+            if (reLd[i]=="HwfxContents::Title"&&i+1<parserr) nm=nm+reLd[i+1];
         }
         parsel=parserr+1;
         string newname="";
-        for (ll i=0;i<16;i++) newname+=randname[rand()%36];
-        ofstream miniF(db+newname,ios::binary);
-        miniF<<"HwfxContents::START"<<endl<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<"1"<<endl<<"HwfxContents::DATASIZE"<<endl<<dtplyd.size()<<endl<<"HwfxContents::IV"<<endl;
-        unsigned char iv[16];
-        for (ll i=0;i<16;i++) {
-            iv[i]=rand()%256;
-            miniF<<(int)iv[i]<<endl;
+        while (true) {
+            newname="";
+            for (ll i=0;i<16;i++) newname+=randname[rand()%36];
+            ifstream testDup(db+newname);
+            if (!testDup.good()) {
+                testDup.close();
+                break;
+            }
+            testDup.close();
         }
-        miniF<<"HwfxContents::PAYLOAD"<<endl;
-        ll newLen=dtplyd.size();
-        newLen=ceil(newLen/16.0)*16;
-        unsigned char* newMsg=new unsigned char[newLen];
-        for (ll i=0;i<dtplyd.size();i++) newMsg[i]=dtplyd[i];
-        for (ll i=dtplyd.size();i<newLen;i++) newMsg[i]=0;
-        dtplyd="";
-        aes_encrypt(newMsg, newLen, aesKey, 32, iv);
-        for (ll i=0;i<newLen;i++) miniF<<newMsg[i];
-        miniF.close();
-        delete[] newMsg;
+        string lvconv=db+newname;
+        writeCore(lvconv,dtplyd);
         //All it needs to do:push to asmt, set target, vq, and chosenID
         asmt.push_back({newname,0,nm,date()});
         //ID SCORE NAME DATE
@@ -667,8 +791,9 @@ int main() {
     #endif
     string exePost="";
     if (SYS==WIN) exePost=".exe";
-    //TODO:Reconvert openhelper
+    //TODO:Add batch evaluation for fs
     //TODO:Add search
+    //TODO:Add seek so that the problem can load before the user can submit
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -682,6 +807,7 @@ int main() {
     intcont["FSVERS"]=&fsvers;
     intcont["HASPREFERREDCOMPILER"]=&prefersCompiler;
     intcont["OVERRIDEDEFAULTFORMAT"]=&overrideDefaultFormat;
+    intcont["DEBUG"]=&debugMd;
     strcont["LOCKEDF"]=&lockedf;
     strcont["VERS"]=&vers;
     strcont["PREFERREDCOMPILER"]=&preferredCompiler;
@@ -696,6 +822,7 @@ int main() {
     ovrflw=0;
     expfsvers=2;
     expvers="1.5";
+    debugMd=0;
     compilerFormat="%CODEPATH% -o %EXECPATH%";
     preferredCompiler="";
     audio.push_back({"U2PQX4CHY3SOJ31E","Handclap"});
@@ -746,20 +873,20 @@ int main() {
     srand(time(0));
     ifstream dbtest;
     if (SYS==APPL) {
-        dbtest.open("/Users/"+username);
+        dbtest.open("/Users/"+fname);
         if (!dbtest.good()) {
             dbtest.close();
             bool isdev=true;
             while (true) {
                 if (isdev) {
                     cout<<"Automatic directory detection failed. Trying dev legitmichel777..."<<endl;
-                    username="legitmichel777";
+                    fname="legitmichel777";
                     isdev=false;
                 } else {
                     cout<<"Automatic directory detection failed. Please enter your username."<<endl;
-                    getline(cin,username);
+                    getline(cin,fname);
                 }
-                dbtest.open("/Users/"+username);
+                dbtest.open("/Users/"+fname);
                 if (dbtest.good()) {dbtest.close();break;}
                 dbtest.close();
                 while (true) {
@@ -767,8 +894,8 @@ int main() {
                     if (SYS==APPL) cout<<"macOS";
                     else if (SYS==WIN) cout<<"Windows";
                     cout<<"). Please enter your username again."<<endl;
-                    getline(cin,username);
-                    dbtest.open("/Users/"+username);
+                    getline(cin,fname);
+                    dbtest.open("/Users/"+fname);
                     if (dbtest.good()) {dbtest.close();break;}
                     dbtest.close();
                 }
@@ -777,8 +904,8 @@ int main() {
         }
         dbtest.close();
     }
-    if (SYS==APPL) db = "/Users/"+username+"/Library/Containers/com.mclm7.homework/";
-    else db = "/Users/"+username+"/AppData/Roaming/CppHomework/";
+    if (SYS==APPL) db = "/Users/"+fname+"/Library/Containers/com.mclm7.homework/";
+    else db = "/Users/"+fname+"/AppData/Roaming/CppHomework/";
     dbtest.open(db+"contents.dwt");
     bool freshins=false;
     bool newUsr=false;
@@ -931,11 +1058,13 @@ int main() {
     }
     ifstream checkTmp2(db+"tmp2/exists");
     if (!checkTmp2.good()) {
+        checkTmp2.close();
         makeDir(db+"tmp2/");
         ofstream nowExists(db+"tmp2/exists");
         nowExists<<"I exist!";
         nowExists.close();
     }
+    checkTmp2.close();
     if (fsvers!=0&&fsvers!=2) {
         impissue=true;
         impfsVers=true;
@@ -962,6 +1091,7 @@ int main() {
                 compcore=max(compcore,1ll);
             } else cout<<"System information gathering failed."<<endl;
         } else cout<<"System information gathering failed."<<endl;
+        in.close();
     }
     for (ll i=0;i<asmt.size();i++) {
         ifstream bundltest(db+asmt[i].id);
@@ -1001,23 +1131,51 @@ int main() {
     
     bool compilerExists=false;
     bool compilerVirgin=true;
+    struct compilerInfo {
+        string pth;
+        string alias;
+    };
+    vector<compilerInfo>compilers;
+    if (SYS==APPL) compilers.push_back((compilerInfo){"/usr/bin/g++","Xcode"});
+    else {
+        compilers.push_back((compilerInfo){"/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe","Dev-C++ (x86)"});
+        compilers.push_back((compilerInfo){"/Program Files/Dev-Cpp/MinGW64/bin/g++.exe","Dev-C++"});
+        compilers.push_back((compilerInfo){"/Program Files (x86)/CodeBlocks/MinGW/bin/g++.exe","Code::Blocks (x86)"});
+        compilers.push_back((compilerInfo){"/Program Files (x86)/CodeBlocks/MinGW/bin/g++.exe","Code::Blocks"});
+    }
     while (!compilerExists) {
         ifstream testCompiler;
         string compilerPath;
+        bool compilerGotRemoved=false;
         if (prefersCompiler) {
             compilerPath=preferredCompiler;
+            testCompiler.open(compilerPath);
+            if (testCompiler.good()) compilerExists=true;
+            else compilerExists=false;
+            testCompiler.close();
         } else {
-            if (SYS==APPL) compilerPath="/usr/bin/g++";
-            else if (SYS==WIN) compilerPath="/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe";
+            if (preferredCompiler!="") {
+                ll foundPref=-1;
+                for (ll i=0;i<compilers.size()&&foundPref==-1;i++) if (preferredCompiler==compilers[i].alias) foundPref=i;
+                if (foundPref!=-1) {
+                    ifstream testDis(compilers[foundPref].pth);
+                    compilerExists=testDis.good();
+                    testDis.close();
+                } else {
+                    compilerGotRemoved=true;
+                }
+            } else {
+                for (ll i=0;i<compilers.size();i++) {
+                    ifstream testCompiler(compilers[i].pth);
+                    if (testCompiler.good()) {
+                        preferredCompiler=compilers[i].alias;
+                        compilerExists=true;
+                    }
+                }
+            }
         }
-        testCompiler.open(compilerPath);
-        if (testCompiler.good()) compilerExists=true;
-        else {
-            compilerExists=false;
-        }
-        testCompiler.close();
         
-        if (!compilerVirgin&&compilerExists) {
+        if (!compilerVirgin&&compilerExists) { //set a new compiler
             cout<<"Compiler successfully found."<<endl;
             if (prefersCompiler) {
                 while (true) {
@@ -1049,20 +1207,26 @@ int main() {
         }
         
         if (compilerExists) break;
+        cout<<"Custom compilers are in development. Compiling is now disabled."<<endl;
+        break;
         cout<<"Error! Compiler not found!"<<endl;
         string compAnsr;
         if (prefersCompiler) {
-            if (SYS==APPL) testCompiler.open("/usr/bin/g++");
-            else if (SYS==WIN) testCompiler.open("/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe");
-            if (testCompiler.good()) {
+            ll nxtFnd=-1;
+            for (ll i=0;i<compilers.size();i++) {
+                ifstream testIfGoodComp(compilers[i].pth);
+                if (testIfGoodComp.good()) {
+                    nxtFnd=i;
+                    break;
+                }
+            }
+            if (nxtFnd!=-1) {
                 testCompiler.close();
-                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist but the default ";
-                if (SYS==APPL) cout<<"Xcode";
-                else if (SYS==WIN) cout<<"Dev-C++";
-                cout<<" compiler does."<<endl<<"[1]Try again with my compiler"<<endl<<"[2]Use Homework's default compiler"<<endl<<"[3]Set new custom compiler"<<endl<<"[4]Use Homework without evaluation features"<<endl;
+                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist but the default "<<compilers[nxtFnd].pth<<" compiler does."<<endl<<"[1]Try again with my compiler"<<endl<<"[2]Use Homework's default compiler"<<endl<<"[3]Set new custom compiler"<<endl<<"[4]Use Homework without evaluation features"<<endl;
                 getline(cin,compAnsr);
                 if (compAnsr=="2") {
                     prefersCompiler=0;
+                    preferredCompiler="";
                 } else if (compAnsr=="3") {
                     clc();
                     cout<<"Input the path to the custom compiler"<<endl;
@@ -1075,9 +1239,17 @@ int main() {
             } else {
                 testCompiler.close();
                 cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist and Homework cannot find it's default ";
-                if (SYS==APPL) cout<<"Xcode";
-                else if (SYS==WIN) cout<<"Dev-C++";
-                cout<<" compiler either."<<endl<<"[1]Try again"<<endl<<"[2]Set a new custom compiler"<<endl<<"[3]Use default compiler and try again"<<endl<<"[4]Use Homework without evaluation features"<<endl;
+                if (compilers.size()>=3) {
+                    for (ll i=0;i<compilers.size()-1;i++) cout<<compilers[i].alias<<", ";
+                    cout<<"and"<<compilers[compilers.size()-1].alias;
+                } else if (compilers.size()==2) {
+                    cout<<compilers[0].alias<<" and "<<compilers[1].alias;
+                } else {
+                    cout<<compilers[0].alias;
+                }
+                cout<<" compiler either."<<endl<<"[1]Try again"<<endl<<"[2]Set a new custom compiler"<<endl<<"[3]Try to use default compiler";
+                if (compilers.size()>1) cout<<"s";
+                cout<<" and try again"<<endl<<"[4]Use Homework without evaluation features"<<endl;
                 getline(cin,compAnsr);
                 if (compAnsr=="2") {
                     clc();
@@ -1086,27 +1258,58 @@ int main() {
                     nml(preferredCompiler);
                 } else if (compAnsr=="3") {
                     prefersCompiler=0;
+                    preferredCompiler="";
                 } else if (compAnsr=="4") {
                     clc();
                     break;
                 } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
             }
         } else {
-            cout<<"Homework's default ";
-            if (SYS==APPL) cout<<"Xcode";
-            else if (SYS==WIN) cout<<"Dev-C++";
-            cout<<" compiler cannot be found."<<endl<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use Homework without evaluation features"<<endl;
-            getline(cin,compAnsr);
-            if (compAnsr=="2") {
-                clc();
-                cout<<"Input the path to the custom compiler"<<endl;
-                getline(cin,preferredCompiler);
-                nml(preferredCompiler);
-                prefersCompiler=1;
-            } else if (compAnsr=="3") {
-                clc();
-                break;;
-            } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+            if (compilerGotRemoved) {
+                cout<<"Your previous "<<preferredCompiler<<" compiler is removed by Homework. ";
+                ll nxtFnd=-1;
+                for (ll i=0;i<compilers.size();i++) {
+                    ifstream testIfGoodComp(compilers[i].pth);
+                    if (testIfGoodComp.good()) {
+                        nxtFnd=i;
+                        break;
+                    }
+                }
+                if (nxtFnd==-1) cout<<"We couldn't find any other default compilers either."<<endl;
+                else cout<<" However, the "<<compilers[nxtFnd].alias<<" compiler does exist."<<endl;
+            } else {
+                //try other default compilers and if they do work, use them.
+                ll nxtFnd=-1;
+                for (ll i=0;i<compilers.size();i++) {
+                    ifstream testIfGoodComp(compilers[i].pth);
+                    if (testIfGoodComp.good()) {
+                        nxtFnd=i;
+                        break;
+                    }
+                }
+                if (nxtFnd==-1) {
+                    cout<<"Homework's default ";
+                    if (SYS==APPL) cout<<"Xcode";
+                    else if (SYS==WIN) cout<<"Dev-C++";
+                    cout<<" compiler cannot be found."<<endl;
+                    if (SYS==APPL) cout<<"To install the Xcode Clang compiler, open Terminal and type in \"xcode-select --install\"."<<endl;
+                    else {
+                        cout<<"If you do have a compiler on the system, set it as a custom compiler and report it so Homework can detect it in future versions!"<<endl;
+                    }
+                    cout<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use Homework without evaluation features"<<endl;
+                    getline(cin,compAnsr);
+                    if (compAnsr=="2") {
+                        clc();
+                        cout<<"Input the path to the custom compiler"<<endl;
+                        getline(cin,preferredCompiler);
+                        nml(preferredCompiler);
+                        prefersCompiler=1;
+                    } else if (compAnsr=="3") {
+                        clc();
+                        break;;
+                    } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+                }
+            }
         }
         clc();
         compilerVirgin=false;
@@ -1158,7 +1361,9 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to Homework(v1.5 beta 3) for C++ Programming Club. Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        cout<<"Welcome to Homework(v1.5 beta 4) for C++ Programming Club."<<endl;
+        if (debugMd) cout<<"Alert! Debug mode enabled! Type \"debug\" to disable debug mode."<<endl;
+        cout<<"Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         if (rand()%5==0) cout<<"Tip:"<<tips[rand()%tips.size()]<<endl;
         if (asmt.size()) cout<<"--------"<<endl;
         sort(asmt.begin(),asmt.end(),cmp);
@@ -1253,8 +1458,15 @@ int main() {
                             idfile=true;
                             //COPY OVER TO TMP
                             string newname="";
-                            for (ll i=0;i<16;i++) {
-                                newname+=randname[rand()%36];
+                            while (true) {
+                                newname="";
+                                for (ll i=0;i<16;i++) newname+=randname[rand()%36];
+                                ifstream testDup(db+newname);
+                                if (!testDup.good()) {
+                                    testDup.close();
+                                    break;
+                                }
+                                testDup.close();
                             }
                             fcopy(pkgpth, db+"tmp/"+newname);
                             //UNZIP
@@ -1274,7 +1486,16 @@ int main() {
                                     ifstream pkgptverf(db+"tmp/"+newname+"u/"+pkgcontent[i]);
                                     if (pkgptverf.good()) {
                                         string newnm="";
-                                        for (ll i=0;i<16;i++) newnm+=randname[rand()%36];
+                                        while (true) {
+                                            newname="";
+                                            for (ll i=0;i<16;i++) newname+=randname[rand()%36];
+                                            ifstream testDup(db+newname);
+                                            if (!testDup.good()) {
+                                                testDup.close();
+                                                break;
+                                            }
+                                            testDup.close();
+                                        }
                                         fcopy(db+"tmp/"+newname+"u/"+pkgcontent[i],db+newnm);
                                         string pkgpeeknm;
                                         //PEEK AT PACKAGE TO LOOK AT NAME
@@ -1306,8 +1527,15 @@ int main() {
                         }
                         idfile=true;
                         string newname="";
-                        for (ll i=0;i<16;i++) {
-                            newname+=randname[rand()%36];
+                        while (true) {
+                            newname="";
+                            for (ll i=0;i<16;i++) newname+=randname[rand()%36];
+                            ifstream testDup(db+newname);
+                            if (!testDup.good()) {
+                                testDup.close();
+                                break;
+                            }
+                            testDup.close();
                         }
                         fcopy(pkgpth,db+newname);
                         string nm="HWSysUndefined";
@@ -1451,6 +1679,7 @@ int main() {
                     }
                     string settmp;
                     getline(cin,settmp);
+                    clc();
                     if (to_string(atoll(settmp.c_str()))==settmp) {
                         ll coretmp = atoll(settmp.c_str());
                         if (coretmp>0) {
@@ -1564,7 +1793,16 @@ int main() {
                                                     string songn;
                                                     getline(cin,songn);
                                                     string songf="";
-                                                    for (ll j=0;j<16;j++) songf+=randname[rand()%36];
+                                                    while (true) {
+                                                        songf="";
+                                                        for (ll j=0;j<16;i++) songf+=randname[rand()%36];
+                                                        ifstream testDup(db+songf+".wav");
+                                                        if (!testDup.good()) {
+                                                            testDup.close();
+                                                            break;
+                                                        }
+                                                        testDup.close();
+                                                    }
                                                     fcopy(newsoundpth,db+songf+".wav");
                                                     audio.push_back({songf,songn});
                                                     cout<<"Song "<<songn<<" imported successfully."<<endl;
@@ -1826,9 +2064,16 @@ int main() {
                     cout<<"Input directory to batch make from"<<endl;
                     string dirBtch;
                     getline(cin,dirBtch);
+                    auto c= chrono::high_resolution_clock::now();
                     nml(dirBtch);
-                    if (!fs::exists(dirBtch)) continue;
-                    if (!fs::is_directory(dirBtch)) continue;
+                    if (!fs::exists(dirBtch)) {
+                        cout<<"Error! Directory does not exist!"<<endl;
+                        continue;
+                    }
+                    if (!fs::is_directory(dirBtch)) {
+                        cout<<"Error! Directory does not exist!"<<endl;
+                        continue;
+                    }
                     vector<string>chkobj;
                     if (true) {
                         chkobj.push_back("description.txt");
@@ -1836,8 +2081,9 @@ int main() {
                         chkobj.push_back("out.txt");
                         chkobj.push_back("title.txt");
                         chkobj.push_back("in1.txt");
-                        chkobj.push_back("in2.txt");
+                        chkobj.push_back("out1.txt");
                     }
+                    bool gotton=false;
                     for (const fs::directory_entry& entry : fs::recursive_directory_iterator(dirBtch)) {
                         if (fs::is_directory(entry.path())) {
                             map<string,bool>gotF;
@@ -1849,6 +2095,7 @@ int main() {
                             bool isQ=true;
                             for (ll i=0;i<chkobj.size()&&isQ;i++) if (!gotF[chkobj[i]]) isQ=false;
                             if (isQ) {
+                                gotton=true;
                                 string pkgpth=entry.path();
                                 string outpth=pkgpth+".hwfx";
                                 ifstream testOverlap(outpth);
@@ -1858,49 +2105,21 @@ int main() {
                                 }
                                 string rdcpkg=pkgpth;
                                 while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
-                                stringstream masterPkg;
-                                ll contCnt=0;
+                                
                                 bool impFail;
                                 string disTtl=rdcpkg;
-                                stringstream newPkg;
+                                string newPkg;
                                 writeHwfx(pkgpth,impFail,disTtl,newPkg);
                                 if (impFail) cout<<"Processing of "<<disTtl<<" failed."<<endl;
                                 else {
-                                    cout<<disTtl<<" successfully processed."<<endl;
-                                    masterPkg<<newPkg.str();
-                                    contCnt++;
-                                }
-                                if (contCnt>0) {
-                                    ofstream fxOut(outpth);
-                                    if (fxOut.good()) {
-                                        fxOut<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<contCnt<<endl<<"HwfxContents::DATASIZE"<<endl<<masterPkg.str().size()<<endl<<"HwfxContents::IV"<<endl;
-                                        unsigned char iv[16];
-                                        for (ll i=0;i<16;i++) {
-                                            iv[i]=rand()%256;
-                                            fxOut<<(int)iv[i]<<endl;
-                                        }
-                                        fxOut<<"HwfxContents::PAYLOAD"<<endl;
-                                        string plyd = masterPkg.str();
-                                        if (plyd.size()>0) {
-                                            ll newLen=plyd.size();
-                                            newLen=ceil(newLen/16.0)*16;
-                                            unsigned char* newMsg=new(nothrow) unsigned char[newLen];
-                                            if (!newMsg) {
-                                                cout<<"Fatal error! Error MEMALLOC."<<endl;
-                                            } else {
-                                                for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
-                                                for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
-                                                aes_encrypt(newMsg, newLen, aesKey, 32, iv);
-                                                for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
-                                                delete[] newMsg;
-                                            }
-                                        } else cout<<"Error! Processed package empty!"<<endl;
-                                    } else cout<<"Unable to write to out file."<<endl;
-                                    fxOut.close();
+                                    if (writeCore(outpth,newPkg)) cout<<"Processing of "<<disTtl<<" failed."<<endl;
+                                    else cout<<disTtl<<" successfully processed."<<endl;
                                 }
                             }
                         }
                     }
+                    if (!gotton) cout<<"No valid directories found."<<endl;
+                    if (debugMd) cout<<"Batch job done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
                     #else
                         cout<<"Error! Filesystem is unavailable!"<<endl;
                     #endif
@@ -1910,7 +2129,10 @@ int main() {
                     cout<<"Input directory to batch import from"<<endl;
                     string dirBtch;
                     getline(cin,dirBtch);
+                    auto c= chrono::high_resolution_clock::now();
                     nml(dirBtch);
+                    ll latentDebug=debugMd;
+                    if (debugMd) debugMd=0;
                     if (fs::exists(dirBtch)) {
                         if (fs::is_directory(dirBtch)) {
                             for (const fs::directory_entry& entry : fs::recursive_directory_iterator(dirBtch)) {
@@ -1930,6 +2152,8 @@ int main() {
                             if (autosave) savedata();
                         }
                     } else cout<<"Error reading directory!"<<endl;
+                    debugMd=latentDebug;
+                    if (debugMd) cout<<"Batch job done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
                     #else
                         cout<<"Error! Filesystem is unavailable!"<<endl;
                     #endif
@@ -1954,7 +2178,15 @@ int main() {
                         }
                     }
                 } else if (vtmp=="const") cout<<"System:"<<SYS<<endl<<"Filesystem:"<<CANUSEFS<<endl;
-                else if (vtmp=="make") {
+                else if (vtmp=="debug") {
+                    if (debugMd) {
+                        cout<<"Debug mode disabled."<<endl;
+                        debugMd=0;
+                    } else {
+                        cout<<"Debug mode enabled."<<endl;
+                        debugMd=1;
+                    }
+                } else if (vtmp=="make") {
                     cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment's directory. Don't include a / at the end of your path."<<endl;
                     string pkgpth;
                     getline(cin,pkgpth);
@@ -1966,6 +2198,7 @@ int main() {
                         bool goOn=false;
                         if (testOverlap.good()) {
                             while (true) {
+                                clc();
                                 cout<<"The file "<<outpth<<" already exists. Do you want to "<<endl<<"[1]Overwrite"<<endl<<"[2]Choose another path"<<endl<<"[3]Stop"<<endl;
                                 string ovrlpdec;
                                 getline(cin,ovrlpdec);
@@ -2005,7 +2238,7 @@ int main() {
                                     outpth=outpth+"/"+rdcpkg;
                                     break;
                                 } else {
-                                    gogogo=true;
+                                    gogogo=goOn=true;
                                     break;
                                 }
                             }
@@ -2015,17 +2248,18 @@ int main() {
                     string rdcpkg=pkgpth;
                     while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
                     if (gogogo) continue;
-                    stringstream masterPkg;
+                    string masterPkg;
                     ll contCnt=0;
                     while (true) {
                         bool impFail;
                         string disTtl=rdcpkg;
-                        stringstream newPkg;
+                        string newPkg;
                         writeHwfx(pkgpth,impFail,disTtl,newPkg);
+                        clc();
                         if (impFail) cout<<"Importing of "<<disTtl<<" failed."<<endl;
                         else {
                             cout<<disTtl<<" successfully processed."<<endl;
-                            masterPkg<<newPkg.str();
+                            masterPkg+=newPkg;
                             contCnt++;
                         }
                         cout<<"Would you like to add another file to the package?"<<endl<<"[1]Yes"<<endl<<"[2]No"<<endl;
@@ -2035,6 +2269,7 @@ int main() {
                             if (doItAgain!="1"&&doItAgain!="2") cout<<"Invalid response."<<endl;
                             else break;
                         }
+                        clc();
                         if (doItAgain=="1") {
                             cout<<"Please input the assignment's directory. Don't include a / at the end of your path."<<endl;
                             getline(cin,pkgpth);
@@ -2042,27 +2277,7 @@ int main() {
                         } else break;
                     }
                     if (contCnt>0) {
-                        ofstream fxOut(outpth,ios::binary);
-                        if (fxOut.good()) {
-                            fxOut<<"HwfxContents::FVERS"<<endl<<"2"<<endl<<"HwfxContents::PKGCNT"<<endl<<contCnt<<endl<<"HwfxContents::DATASIZE"<<endl<<masterPkg.str().size()<<endl<<"HwfxContents::IV"<<endl;
-                            unsigned char iv[16];
-                            for (ll i=0;i<16;i++) {
-                                iv[i]=rand()%256;
-                                fxOut<<(int)iv[i]<<endl;
-                            }
-                            fxOut<<"HwfxContents::PAYLOAD"<<endl;
-                            string plyd = masterPkg.str();
-                            ll newLen=plyd.size();
-                            newLen=ceil(newLen/16.0)*16;
-                            unsigned char* newMsg=new unsigned char[newLen];
-                            for (ll i=0;i<plyd.size();i++) newMsg[i]=plyd[i];
-                            for (ll i=plyd.size();i<newLen;i++) newMsg[i]=0;
-                            aes_encrypt(newMsg, newLen, aesKey, 32, iv);
-                            for (ll i=0;i<newLen;i++) fxOut<<newMsg[i];
-                            delete[] newMsg;
-                        } else cout<<"Unable to write to out file."<<endl;
-                        fxOut.close();
-                        cout<<"hwfX file created at "<<outpth<<endl;
+                        if (!writeCore(outpth,masterPkg)) cout<<"hwfX file created at "<<outpth<<endl;
                     } else cout<<"No assignments loaded! No file created."<<endl;
                 } else {
                     for (ll i=0;i<asmt.size();i++) {
@@ -2076,7 +2291,6 @@ int main() {
                     }
                     if (!vq) cout<<"Invalid response."<<endl;
                 }
-                clc();
             }
         }
         if (vq) {
@@ -2100,115 +2314,70 @@ int main() {
             vector<vector<string>>inex;
             if (hwfxVerf=="HwfxContents::START") {
                 string pkgpth=db+target;
-                ifstream importHwfx(pkgpth,ios::binary);
-                vector<string>fHeader;
-                while (true) {
-                    if (importHwfx.eof()) {
-                        cout<<"Critical error! Payload not found!"<<endl;
-                        break;
-                    }
-                    string impTmp;
-                    getline(importHwfx,impTmp);
-                    if (impTmp=="HwfxContents::PAYLOAD") break;
-                    else fHeader.push_back(impTmp);
-                }
-                string fplyd((std::istreambuf_iterator<char>(importHwfx)),istreambuf_iterator<char>());
-                importHwfx.close();
-                unsigned char iv[16]={0};
-                bool gotIv=false,gotFvers=false,gotDtsz=false,gotCnt=false;
-                string fvers="";
-                ll dtsz=0,ascnt=1;
-                for (ll i=0;i<fHeader.size();i++) {
-                    if (fHeader[i]=="HwfxContents::FVERS") {
-                        if (i+1!=fHeader[i].size()) {
-                            fvers=fHeader[++i];
-                            gotFvers=true;
-                        }
-                    } else if (fHeader[i]=="HwfxContents::DATASIZE") {
-                        if (i+1!=fHeader.size()) {
-                            dtsz=atoll(fHeader[++i].c_str());
-                            gotDtsz=true;
-                        }
-                    } else if (fHeader[i]=="HwfxContents::IV") {
-                        for (ll j=i+1;j<=i+16;j++) {
-                            iv[j-i-1]=atoll(fHeader[j].c_str());
-                            if (j+1==fHeader.size()&&j-i-1!=15) {
-                                cout<<"Error reading IV!"<<endl;
-                                break;
-                            }
-                        }
-                        i+=17;
-                        gotIv=true;
-                    } else if (fHeader[i]=="HwfxContents::PKGCNT") {
-                        if (i+1!=fHeader.size()) {
-                            ascnt=atoll(fHeader[++i].c_str());
-                            gotCnt=true;
-                        }
-                    }
-                }
-                if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
-                bool goodImp=true;
-                if (!gotIv) {
-                    cout<<"Error reading IV!"<<endl;
-                    goodImp=false;
-                }
-                if (!gotFvers) cout<<"Error reading file version!"<<endl;
-                if (!gotDtsz) {
-                    cout<<"Error reading file size!"<<endl;
-                    goodImp=false;
-                }
-                if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
-                ll newLen=dtsz;
-                newLen=ceil(dtsz/16.0)*16;
-                unsigned char* decPkg=new(nothrow) unsigned char[newLen];
-                for (ll i=0;i<fplyd.size();i++) decPkg[i]=fplyd[i];
-                for (ll i=fplyd.size();i<newLen;i++) decPkg[i]=0;
-                aes_decrypt(decPkg, newLen, aesKey, 32, iv);
                 vector<string>reLd;
-                string ft="";
-                for (ll i=0;i<dtsz;i++) {
-                    if (decPkg[i]=='\n') {
-                        reLd.push_back(ft);
-                        ft="";
-                    } else ft+=decPkg[i];
-                }
-                if (ft.size()) reLd.push_back(ft);
-                if (ascnt==1) vq=true;
-                delete[] decPkg;
+                bool vqDummy=0;
+                readHwfxCore(reLd,pkgpth,vqDummy);
+                auto c= chrono::high_resolution_clock::now();
                 //read in all except exin and inset
                 //use maps to verify exin and inset
                 //then read
                 for (ll i=0;i<reLd.size()-1;i++) {
                     if (reLd[i]=="HwfxContents::Title") {
-                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probname=probname+reLd[i];
+                        for (i++;i<reLd.size();i++) {
+                            if (reLd[i].size()>14) {
+                                if (reLd[i].substr(0,14)=="HwfxContents::") break;
+                            }
+                            probname=probname+reLd[i];
+                        }
                         i--;
                     } else if (reLd[i]=="HwfxContents::Description") {
-                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probdes.push_back(reLd[i]);
+                        for (i++;i<reLd.size();i++) {
+                            if (reLd[i].size()>14) {
+                                if (reLd[i].substr(0,14)=="HwfxContents::") break;
+                            }
+                            probdes.push_back(reLd[i]);
+                        }
                         i--;
                     } else if (reLd[i]=="HwfxContents::InputDes") {
-                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probin.push_back(reLd[i]);
+                        for (i++;i<reLd.size();i++) {
+                            if (reLd[i].size()>14) {
+                                if (reLd[i].substr(0,14)=="HwfxContents::") break;
+                            }
+                            probin.push_back(reLd[i]);
+                        }
                         i--;
                     } else if (reLd[i]=="HwfxContents::OutputDes") {
-                        for (i++;reLd[i].find("HwfxContents::")==string::npos&&i<reLd.size();i++) probout.push_back(reLd[i]);
+                        for (i++;i<reLd.size();i++) {
+                            if (reLd[i].size()>14) {
+                                if (reLd[i].substr(0,14)=="HwfxContents::") break;
+                            }
+                            probout.push_back(reLd[i]);
+                        }
                         i--;
                     }
+                }
+                if (debugMd) {
+                    cout<<"Parsing stage 1 done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
+                    c = chrono::high_resolution_clock::now();
                 }
                 map<ll,dtCont>exCnt;
                 map<ll,dtCont>stCnt;
                 map<ll,dtCont>stPos;
                 for (ll i=0;i<reLd.size();i++) {
-                    if (reLd[i].find("HwfxContents::ExampleInput")!=string::npos) {
-                        exCnt[atoll(reLd[i].substr(26).c_str())].cnt++;
-                        exCnt[atoll(reLd[i].substr(26).c_str())].ipos=i;
-                    } else if (reLd[i].find("HwfxContents::ExampleOutput")!=string::npos) {
-                        exCnt[atoll(reLd[i].substr(27).c_str())].cnt++;
-                        exCnt[atoll(reLd[i].substr(27).c_str())].opos=i;
-                    } else if (reLd[i].find("HwfxContents::InputSet")!=string::npos) {
-                        stCnt[atoll(reLd[i].substr(22).c_str())].cnt++;
-                        stCnt[atoll(reLd[i].substr(22).c_str())].ipos=i;
-                    } else if (reLd[i].find("HwfxContents::OutputSet")!=string::npos) {
-                        stCnt[atoll(reLd[i].substr(23).c_str())].cnt++;
-                        stCnt[atoll(reLd[i].substr(23).c_str())].opos=i;
+                    if (reLd[i].size()>18) {
+                        if (reLd[i].substr(0,18)=="HwfxContents::EXIN") {
+                            exCnt[atoll(reLd[i].substr(18).c_str())].cnt++;
+                            exCnt[atoll(reLd[i].substr(18).c_str())].ipos=i;
+                        } else if (reLd[i].substr(0,18)=="HwfxContents::EXOU") {
+                            exCnt[atoll(reLd[i].substr(18).c_str())].cnt++;
+                            exCnt[atoll(reLd[i].substr(18).c_str())].opos=i;
+                        } else if (reLd[i].substr(0,18)=="HwfxContents::INST") {
+                            stCnt[atoll(reLd[i].substr(18).c_str())].cnt++;
+                            stCnt[atoll(reLd[i].substr(18).c_str())].ipos=i;
+                        } else if (reLd[i].substr(0,18)=="HwfxContents::OUST") {
+                            stCnt[atoll(reLd[i].substr(18).c_str())].cnt++;
+                            stCnt[atoll(reLd[i].substr(18).c_str())].opos=i;
+                        }
                     }
                 }
                 ll rbndex=0;
@@ -2233,15 +2402,20 @@ int main() {
                 }
                 for (ll i=1;i<=rbndst;i++) {
                     vector<string>stTmp;
-                    for (ll j=stCnt[i].ipos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) stTmp.push_back(reLd[j]);
+                    for (ll j=stCnt[i].ipos+1;j<reLd.size();j++) {
+                        if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
+                        stTmp.push_back(reLd[j]);
+                    }
                     indata.push_back(stTmp);
                     stTmp.clear();
                     for (ll j=stCnt[i].opos+1;j<reLd.size();j++) {
-                        string isAtEnd=reLd[j];
-                        if (isAtEnd.find("HwfxContents::")!=string::npos) break;
+                        if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
                         stTmp.push_back(reLd[j]);
                     }
                     outdata.push_back(stTmp);
+                }
+                if (debugMd) {
+                    cout<<"Parsing stage 2 done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
                 }
             } else {
                 if (SYS==APPL) {
@@ -2479,7 +2653,7 @@ int main() {
                             gppbrd<<compilerArg;
                             gppbrd.close();
 //                            cout<<"\""+db+"err"+"\" \""+compilerArg+"\""<<endl;
-                            inAppLaunch(db+"gpphelper"+exePost,username);
+                            inAppLaunch(db+"gpphelper"+exePost,fname);
                             bool compile=true;
                             ifstream testcomp(db+"tmp/exe"+exePost);
                             if (testcomp.good()) compile=true;

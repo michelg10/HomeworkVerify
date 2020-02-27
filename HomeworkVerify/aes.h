@@ -1,16 +1,17 @@
 #ifndef aes_h
 #define aes_h
-#include <bits/stdc++.h>
+#include <thread>
+#define USE_THR 1
 #include "aes_lookup.h"
 using namespace std;
 typedef long long ll;
-void aes_keyCore (unsigned char *in, unsigned char i) {
+void aes_keyCore (unsigned char *in, unsigned const char i) {
     unsigned int* q=(unsigned int*)in;
     *q=(*q>>8)|((*q&0xff)<<24); //rotate
-    for (ll i=0;i<4;i++) in[i]=sbox[in[i]]; //sbox
+    for (ll j=0;j<4;j++) in[j]=sbox[in[j]]; //sbox
     in[0]^=rcon[i]; //rcon
 }
-void aes_keyExpand(unsigned char *inKey, unsigned char * expKey, ll keySz) {
+void aes_keyExpand(unsigned char *inKey, unsigned char * expKey, ll const keySz) {
     ll sksz,coreSch;
     if (keySz==176) {
         sksz=16;
@@ -91,7 +92,7 @@ void aes_inv_mixColumns(unsigned char* state) {
 void aes_addRndKey(unsigned char* state, unsigned char* rndkey) {
     for (ll i=0;i<16;i++) state[i]^=rndkey[i];
 }
-void aes_encrypt_raw(unsigned char* message, unsigned char* expKey,ll rounds) {
+void aes_encrypt_raw(unsigned char* message, unsigned char* expKey,ll const rounds) {
     unsigned char state[16];
     for (ll i=0;i<16;i++) {
         state[i]=message[i];
@@ -109,7 +110,25 @@ void aes_encrypt_raw(unsigned char* message, unsigned char* expKey,ll rounds) {
     aes_addRndKey(state,expKey+16*rounds);
     for (ll i=0;i<16;i++) message[i]=state[i];
 }
-void aes_encrypt(unsigned char* message,ll messageLen, unsigned char* key,ll keyLen,unsigned char* iv) {
+void aes_encrypt_thr_core(unsigned char* message,ll const messageLen, unsigned char* expKey, ll roundamt,vector<unsigned char *>iv,ll const k) {
+    ll startingBlk=k*16;
+    if (startingBlk+16>messageLen) {
+        cout<<"AES_ENC_THR_CORE_OVRFLW"<<endl;
+        return;
+    } else if (startingBlk<0) {
+        cout<<"AES_ENC_THR_CORE_UNRFLW"<<endl;
+        return;
+    }
+    for (ll i=startingBlk;i<startingBlk+16;i++) {
+        message[i]^=iv[k][i-startingBlk];
+    }
+    aes_encrypt_raw(message+startingBlk,expKey,roundamt);
+    for (ll i=(iv.size()+k)*16;i<messageLen;i+=16*iv.size()) {
+        for (ll j=i;j<i+16;j++) message[j]^=message[j-iv.size()*16];
+        aes_encrypt_raw(message+i,expKey,roundamt);
+    }
+}
+void aes_encrypt(unsigned char* message,ll const messageLen, unsigned char* key,ll const keyLen,vector<unsigned char *> iv) {
     ll keysz,rndamt;
     if (keyLen==16) {
         keysz=176;
@@ -124,16 +143,26 @@ void aes_encrypt(unsigned char* message,ll messageLen, unsigned char* key,ll key
         cout<<"Error! Key size must be 128, 192, or 256 bits!"<<endl;
         return;
     }
-    unsigned char expKey[keysz];
+    unsigned char* expKey=new unsigned char[keysz];
     aes_keyExpand(key,expKey,keysz);
-    for (ll i=0;i<16;i++) message[i]^=iv[i];
-    aes_encrypt_raw(message,expKey,rndamt);
-    for (ll i=16;i<messageLen;i+=16) {
-        for (ll j=i;j<i+16;j++) message[j]^=message[j-16];
-        aes_encrypt_raw(message+i,expKey,rndamt);
+#if USE_THR
+    thread mltr[iv.size()];
+#endif
+    for (ll k=0;k<iv.size();k++) {
+#if USE_THR
+        mltr[k]=thread(aes_encrypt_thr_core,message,messageLen,expKey,rndamt,iv,k);
+#else
+        aes_encrypt_thr_core(message, messageLen,expKey,rndamt,iv,k);
+#endif
     }
+#if USE_THR
+    for (ll i=0;i<iv.size();i++) {
+        if (mltr[i].joinable()) mltr[i].join();
+    }
+#endif
+    delete[] expKey;
 }
-void aes_decrypt_raw(unsigned char* message, unsigned char* expKey,ll rounds) {
+void aes_decrypt_raw(unsigned char* message, unsigned char* expKey,ll const rounds) {
     unsigned char state[16];
     for (ll i=0;i<16;i++) {
         state[i]=message[i];
@@ -151,7 +180,31 @@ void aes_decrypt_raw(unsigned char* message, unsigned char* expKey,ll rounds) {
     aes_addRndKey(state,expKey);
     for (ll i=0;i<16;i++) message[i]=state[i];
 }
-void aes_decrypt(unsigned char* message,ll messageLen, unsigned char* key,ll keyLen, unsigned char* iv) {
+void aes_decrypt_thr_core(unsigned char* message,ll const messageLen, unsigned char* expKey,ll const rndamt, vector<unsigned char *> iv,ll const k) {
+    ll startingBlk=(messageLen/16)/iv.size();
+    startingBlk*=iv.size();
+    startingBlk+=k;
+    startingBlk*=16;
+    if (startingBlk+16>messageLen) startingBlk-=iv.size()*16;
+    if (startingBlk+16>messageLen) {
+        cout<<"AES_DEC_THR_CORE OVRFLW"<<endl;
+        return;
+    } else if (startingBlk<0) {
+        cout<<"AES_DEC_THR_CORE UNRFLW"<<endl;
+        return;
+    }
+    for (ll i=startingBlk;i>=16*iv.size();i-=16*iv.size()) {
+//        cout<<"PROCESSING "<<i<<endl;
+        aes_decrypt_raw(message+i,expKey,rndamt);
+        for (ll j=i;j<i+16;j++) message[j]^=message[j-iv.size()*16];
+    }
+    aes_decrypt_raw(message+k*16,expKey,rndamt);
+//    cout<<"PROCESSING "<<k*16<<endl;
+    for (ll j=0;j<16;j++) {
+        message[k*16+j]^=iv[k][j];
+    }
+}
+void aes_decrypt(unsigned char* message,ll const messageLen, unsigned char* key,ll const keyLen, vector<unsigned char *> iv) {
     ll keysz,rndamt;
     if (keyLen==16) {
         keysz=176;
@@ -166,13 +219,23 @@ void aes_decrypt(unsigned char* message,ll messageLen, unsigned char* key,ll key
         cout<<"Error! Key size must be 128, 192, or 256 bits!"<<endl;
         return;
     }
-    unsigned char expKey[keysz];
+    unsigned char* expKey=new unsigned char[keysz];
     aes_keyExpand(key,expKey,keysz);
-    for (ll i=messageLen-16;i>=16;i-=16) {
-        aes_decrypt_raw(message+i,expKey,rndamt);
-        for (ll j=i;j<i+16;j++) message[j]^=message[j-16];
+#if USE_THR
+    thread mltr[iv.size()];
+#endif
+    for (ll k=0;k<iv.size();k++) {
+#if USE_THR
+        mltr[k]=thread(aes_decrypt_thr_core,message, messageLen, expKey,rndamt, iv,k);
+#else
+        aes_decrypt_thr_core(message, messageLen, expKey,rndamt, iv,k);
+#endif
     }
-    aes_decrypt_raw(message,expKey,rndamt);
-    for (ll i=0;i<16;i++) message[i]^=iv[i];
+#if USE_THR
+    for (ll i=0;i<iv.size();i++) {
+        if (mltr[i].joinable()) mltr[i].join();
+    }
+#endif
+    delete[] expKey;
 }
 #endif /* aes_h */
