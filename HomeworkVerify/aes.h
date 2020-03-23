@@ -93,26 +93,21 @@ void aes_addRndKey(unsigned char* state, unsigned char* rndkey) {
     for (ll i=0;i<16;i++) state[i]^=rndkey[i];
 }
 void aes_encrypt_raw(unsigned char* message, unsigned char* expKey,ll const rounds) {
-    unsigned char state[16];
-    for (ll i=0;i<16;i++) {
-        state[i]=message[i];
-    }
-    
-    aes_addRndKey(state,expKey);
+    aes_addRndKey(message,expKey);
     for (ll i=1;i<rounds;i++) {
-        aes_subBytes(state);
-        aes_shiftRows(state);
-        aes_mixColumns(state);
-        aes_addRndKey(state,expKey+(16*i));
+        aes_subBytes(message);
+        aes_shiftRows(message);
+        aes_mixColumns(message);
+        aes_addRndKey(message,expKey+(16*i));
     }
-    aes_subBytes(state);
-    aes_shiftRows(state);
-    aes_addRndKey(state,expKey+16*rounds);
-    for (ll i=0;i<16;i++) message[i]=state[i];
+    aes_subBytes(message);
+    aes_shiftRows(message);
+    aes_addRndKey(message,expKey+16*rounds);
 }
 void aes_encrypt_thr_core(unsigned char* message,ll const messageLen, unsigned char* expKey, ll roundamt,vector<unsigned char *>iv,ll const k) {
     ll startingBlk=k*16;
     if (startingBlk+16>messageLen) {
+        cout<<"ERROR "<<k<<' '<<messageLen<<endl;
         cout<<"AES_ENC_THR_CORE_OVRFLW"<<endl;
         return;
     } else if (startingBlk<0) {
@@ -163,22 +158,16 @@ void aes_encrypt(unsigned char* message,ll const messageLen, unsigned char* key,
     delete[] expKey;
 }
 void aes_decrypt_raw(unsigned char* message, unsigned char* expKey,ll const rounds) {
-    unsigned char state[16];
-    for (ll i=0;i<16;i++) {
-        state[i]=message[i];
-    }
-    
-    aes_addRndKey(state,expKey+16*rounds);
+    aes_addRndKey(message,expKey+16*rounds);
     for (ll i=1;i<rounds;i++) {
-        aes_inv_shiftRows(state);
-        aes_inv_subBytes(state);
-        aes_addRndKey(state,expKey+(16*rounds-16*i));
-        aes_inv_mixColumns(state);
+        aes_inv_shiftRows(message);
+        aes_inv_subBytes(message);
+        aes_addRndKey(message,expKey+(16*rounds-16*i));
+        aes_inv_mixColumns(message);
     }
-    aes_inv_shiftRows(state);
-    aes_inv_subBytes(state);
-    aes_addRndKey(state,expKey);
-    for (ll i=0;i<16;i++) message[i]=state[i];
+    aes_inv_shiftRows(message);
+    aes_inv_subBytes(message);
+    aes_addRndKey(message,expKey);
 }
 void aes_decrypt_thr_core(unsigned char* message,ll const messageLen, unsigned char* expKey,ll const rndamt, vector<unsigned char *> iv,ll const k) {
     ll startingBlk=(messageLen/16)/iv.size();
@@ -194,12 +183,10 @@ void aes_decrypt_thr_core(unsigned char* message,ll const messageLen, unsigned c
         return;
     }
     for (ll i=startingBlk;i>=16*iv.size();i-=16*iv.size()) {
-//        cout<<"PROCESSING "<<i<<endl;
         aes_decrypt_raw(message+i,expKey,rndamt);
         for (ll j=i;j<i+16;j++) message[j]^=message[j-iv.size()*16];
     }
     aes_decrypt_raw(message+k*16,expKey,rndamt);
-//    cout<<"PROCESSING "<<k*16<<endl;
     for (ll j=0;j<16;j++) {
         message[k*16+j]^=iv[k][j];
     }

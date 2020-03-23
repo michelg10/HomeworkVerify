@@ -1,4 +1,4 @@
-#define CANUSEFS 1
+#define CANUSEFS 0
 #define APPL 0
 #define WIN 1
 #define SYS 0
@@ -9,6 +9,7 @@
 #include <sstream>
 #include <map>
 #include <queue>
+#include <algorithm>
 #include <cmath>
 #include <set>
 #if CANUSEFS
@@ -125,7 +126,7 @@ bool readf(vector<string>&s,string path) {
 string fname = getlogin();
 #endif
 #if SYS==WIN
-string username;
+string fname;
 #endif
 string db;
 //MARK:SYSTEM CALLS
@@ -233,7 +234,7 @@ void install(bool comple) {
         makeDir(db+"tmp2/");
         ofstream disExist(db+"tmp2/exists");
     }
-    //MAC:Install gpphelper(104816),openhelper(203840),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //MAC:Install gpphelper(104816),openhelper(203792),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
     //WIN:Install openhelper(1944946),gpphelper(1928070),hkill(1926234)
     string pstfx="";
     if (SYS==WIN) pstfx=".exe";
@@ -257,7 +258,7 @@ void install(bool comple) {
 #elif SYS==WIN
     tmp=openhelperw();
 #endif
-    if (SYS==APPL) for (ll i=0;i<203840;i++) installer<<tmp[i];
+    if (SYS==APPL) for (ll i=0;i<203792;i++) installer<<tmp[i];
     else if (SYS==WIN) for (ll i=0;i<1944946;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"openhelper"+pstfx);
@@ -676,7 +677,7 @@ bool readHwfxCore(vector<string>&reLd,string pkgpth,bool &vq) {
     }
     if (fvers!="2") cout<<"Alert! File version unsupported!"<<endl;
     if (!gotIv) {
-        cout<<"Error reading IV! This may be a dated Homework package."<<endl;
+        cout<<"Error reading IV! This may be a dated file."<<endl;
     }
     if (!gotFvers) cout<<"Error reading file version!"<<endl;
     if (!gotDtsz) {
@@ -782,12 +783,84 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
     
     return 1;
 }
+void testAes(ll tstmulcnt,ll tstmulsz,ll tstmulthr,ll tstkeysz) {
+    cout<<"Testing "<<tstmulcnt<<" times, each time with "<<tstmulsz<<" bytes of data. Running on "<<tstmulthr<<" thread";
+    if (tstmulthr>1) cout<<"s."<<endl;
+    else cout<<"."<<endl;
+    cout<<"Generating data..."<<endl;
+    unsigned char *testData=new(nothrow) unsigned char[tstmulsz*tstmulcnt];
+    if (testData) {
+        for (ll i=0;i<tstmulcnt*tstmulsz;i++) testData[i]=rand()%256;
+    } else {
+        cout<<"Memory allocation failed for test data."<<endl;
+        return;
+    }
+    cout<<"Generating passwords and IV"<<endl;
+    vector<unsigned char *>iv[tstmulcnt];
+    for (ll i=0;i<tstmulcnt;i++) {
+        for (ll j=0;j<tstmulthr;j++) {
+            unsigned char* distmp=new unsigned char[8];
+            if (!distmp) {
+                cout<<"Memory allocation failed for iv "<<i<<' '<<j<<endl;
+                delete[] testData;
+                for (ll k=0;k<tstmulcnt;k++) for (ll l=0;l<iv[k].size();l++) if (iv[k][l]) delete[] iv[k][l];
+                return;
+            }
+            for (ll k=0;k<8;k++) distmp[k]=rand()%256;
+            iv[i].push_back(distmp);
+        }
+    }
+    unsigned char *key=new unsigned char[tstmulcnt*tstkeysz];
+    if (!key) {
+        cout<<"Memory allocation failed for keys"<<endl;
+        for (ll i=0;i<tstmulcnt;i++) for (ll j=0;j<iv[i].size();j++) delete[] iv[i][j];
+        delete[] testData;
+    }
+    for (ll i=0;i<tstmulcnt;i++) {
+        for (ll j=0;j<tstkeysz;j++) {
+            key[i*tstkeysz+j]=rand()%256;
+        }
+    }
+    cout<<"Copying data..."<<endl;
+    unsigned char *toEncData=new(nothrow) unsigned char[tstmulcnt*tstmulsz];
+    if (toEncData) {
+        for (ll i=0;i<tstmulcnt*tstmulsz;i++) toEncData[i]=testData[i];
+    } else {
+        cout<<"Memory allocation failed for encryption data"<<endl;
+        for (ll i=0;i<tstmulcnt;i++) for (ll j=0;j<iv[i].size();j++) delete[] iv[i][j];
+        delete[] testData;
+    }
+    cout<<"Encrypting..."<<endl;
+    auto c= chrono::high_resolution_clock::now();
+    for (ll i=0;i<tstmulcnt;i++) {
+        aes_encrypt(toEncData+i*tstmulsz, tstmulsz, key+i*tstkeysz, tstkeysz, iv[i]);
+    }
+    cout<<"Encryption done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
+    cout<<"Decrypting..."<<endl;
+    c = chrono::high_resolution_clock::now();
+    for (ll i=0;i<tstmulcnt;i++) {
+        aes_decrypt(toEncData+i*tstmulsz,tstmulsz, key+i*tstkeysz, tstkeysz, iv[i]);
+    }
+    cout<<"Decryption done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
+    cout<<"Matching data..."<<endl;
+    bool issue=false;
+    for (ll i=0;i<tstmulcnt*tstmulsz;i++) {
+        if (toEncData[i]!=testData[i]) {
+            cout<<"Error at test #"<<i/tstmulsz+1<<", byte #"<<i%tstmulsz<<endl;
+            issue=true;
+        }
+    }
+    if (issue) cout<<"Passed with 0 issues."<<endl;
+    delete[] toEncData;
+    for (ll i=0;i<tstmulcnt;i++) for (ll j=0;j<iv[i].size();j++) delete[] iv[i][j];
+    delete[] testData;
+}
 int main() {
     #if SYS==WIN
     char usrn[UNLEN+1];
     DWORD username_len = UNLEN+1;
     GetUserName(usrn, &username_len);
-    username=usrn;
+    fname=usrn;
     #endif
     string exePost="";
     if (SYS==WIN) exePost=".exe";
@@ -834,7 +907,7 @@ int main() {
         easter.push_back({"?ldroW","hello world","!dlroW olleH"});
         easter.push_back({"Secrets...","easter egg","Secrets have been hidden..."});
         easter.push_back({"Demons","horn","Try not to get me wet"});
-        easter.push_back({"ME!","credits","HOMEWORK SYSTEM MADE BY MICHEL!"});
+        easter.push_back({"ME!","credits","CODEASSIGN MADE BY MICHEL!"});
         easter.push_back({"Ding!","tiger","Buy the Tiger Microwave and the Ding Radio Emitter!"});
         easter.push_back({"Always On!","eric","That man must be turned off"});
         easter.push_back({"You ded!","msyan","For Ms.Yan..."});
@@ -842,7 +915,7 @@ int main() {
         easter.push_back({"You kiss your mother with that mouth?","fack","If you see kay, why oh you?"});
         easter.push_back({"My name!","michel","That's me!"});
         easter.push_back({"Language of the future...","c++","That's the language!"});
-        easter.push_back({"MINE! MINE!","lucy","Do your homework... and come talk to me. Tell me that I sent you"});
+        easter.push_back({"MINE! MINE!","lucy","Do your assignments... and come talk to me. Tell me that I sent you"});
         easter.push_back({"Cat Spring","cucumber","Cats like them... I think"});
         easter.push_back({"Best subject","math","Awesome Math!"});
         easter.push_back({"Slap his thigh!","lightning","Lightning and the thunder..."});
@@ -931,11 +1004,11 @@ int main() {
             convtest.close();
             if (SYS==APPL) {
                 install(0);
-                cout<<"v1.3 of Homework introduces a new storage format, DWT. DWT allows for seamless compatibility between versions of Homework. We'll now convert your old MAN file to DWT!"<<endl;
+                cout<<"v1.3 of CodeAssign introduces a new storage format, DWT. DWT allows for seamless compatibility between versions of CodeAssign. We'll now convert your old MAN file to DWT!"<<endl;
                 inAppLaunch(db+"convtool"+exePost,"");
-                cout<<"Please reopen Homework."<<endl;
+                cout<<"Please reopen CodeAssign."<<endl;
                 return 0;
-            } else cout<<"Unexpected error! MAN save files are only supported on Homework for macOS! Convert this save file to DWT in macOS versions of Homework first."<<endl;
+            } else cout<<"Unexpected error! MAN save files are only supported on CodeAssign for macOS! Convert this save file to DWT in macOS versions of CodeAssign first."<<endl;
         }
         
     } else convtest.close();
@@ -1052,7 +1125,7 @@ int main() {
     in.close();
     if (vers!=expvers) {
         if (vers<expvers) {
-            cout<<"Welcome to Homework v1.5!"<<endl;
+            cout<<"Welcome to CodeAssign v1.5!"<<endl;
             changelog();
         }
     }
@@ -1136,12 +1209,13 @@ int main() {
         string alias;
     };
     vector<compilerInfo>compilers;
-    if (SYS==APPL) compilers.push_back((compilerInfo){"/usr/bin/g++","Xcode"});
-    else {
+    if (SYS==APPL) {
+        compilers.push_back((compilerInfo){"/usr/bin/g++","Xcode"});
+    } else {
         compilers.push_back((compilerInfo){"/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe","Dev-C++ (x86)"});
         compilers.push_back((compilerInfo){"/Program Files/Dev-Cpp/MinGW64/bin/g++.exe","Dev-C++"});
         compilers.push_back((compilerInfo){"/Program Files (x86)/CodeBlocks/MinGW/bin/g++.exe","Code::Blocks (x86)"});
-        compilers.push_back((compilerInfo){"/Program Files (x86)/CodeBlocks/MinGW/bin/g++.exe","Code::Blocks"});
+        compilers.push_back((compilerInfo){"/Program Files/CodeBlocks/MinGW/bin/g++.exe","Code::Blocks"});
     }
     while (!compilerExists) {
         ifstream testCompiler;
@@ -1222,7 +1296,7 @@ int main() {
             }
             if (nxtFnd!=-1) {
                 testCompiler.close();
-                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist but the default "<<compilers[nxtFnd].pth<<" compiler does."<<endl<<"[1]Try again with my compiler"<<endl<<"[2]Use Homework's default compiler"<<endl<<"[3]Set new custom compiler"<<endl<<"[4]Use Homework without evaluation features"<<endl;
+                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist but the default "<<compilers[nxtFnd].pth<<" compiler does."<<endl<<"[1]Try again with my compiler"<<endl<<"[2]Use CodeAssign's default compiler"<<endl<<"[3]Set new custom compiler"<<endl<<"[4]Use CodeAssign without evaluation features"<<endl;
                 getline(cin,compAnsr);
                 if (compAnsr=="2") {
                     prefersCompiler=0;
@@ -1238,7 +1312,7 @@ int main() {
                 } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
             } else {
                 testCompiler.close();
-                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist and Homework cannot find it's default ";
+                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist and CodeAssign cannot find it's default ";
                 if (compilers.size()>=3) {
                     for (ll i=0;i<compilers.size()-1;i++) cout<<compilers[i].alias<<", ";
                     cout<<"and"<<compilers[compilers.size()-1].alias;
@@ -1249,7 +1323,7 @@ int main() {
                 }
                 cout<<" compiler either."<<endl<<"[1]Try again"<<endl<<"[2]Set a new custom compiler"<<endl<<"[3]Try to use default compiler";
                 if (compilers.size()>1) cout<<"s";
-                cout<<" and try again"<<endl<<"[4]Use Homework without evaluation features"<<endl;
+                cout<<" and try again"<<endl<<"[4]Use CodeAssign without evaluation features"<<endl;
                 getline(cin,compAnsr);
                 if (compAnsr=="2") {
                     clc();
@@ -1266,7 +1340,7 @@ int main() {
             }
         } else {
             if (compilerGotRemoved) {
-                cout<<"Your previous "<<preferredCompiler<<" compiler is removed by Homework. ";
+                cout<<"Your previous "<<preferredCompiler<<" compiler is removed by CodeAssign. ";
                 ll nxtFnd=-1;
                 for (ll i=0;i<compilers.size();i++) {
                     ifstream testIfGoodComp(compilers[i].pth);
@@ -1288,15 +1362,15 @@ int main() {
                     }
                 }
                 if (nxtFnd==-1) {
-                    cout<<"Homework's default ";
+                    cout<<"CodeAssign's default ";
                     if (SYS==APPL) cout<<"Xcode";
                     else if (SYS==WIN) cout<<"Dev-C++";
                     cout<<" compiler cannot be found."<<endl;
                     if (SYS==APPL) cout<<"To install the Xcode Clang compiler, open Terminal and type in \"xcode-select --install\"."<<endl;
                     else {
-                        cout<<"If you do have a compiler on the system, set it as a custom compiler and report it so Homework can detect it in future versions!"<<endl;
+                        cout<<"If you do have a compiler on the system, set it as a custom compiler and report it so CodeAssign can detect it in future versions!"<<endl;
                     }
-                    cout<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use Homework without evaluation features"<<endl;
+                    cout<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use CodeAssign without evaluation features"<<endl;
                     getline(cin,compAnsr);
                     if (compAnsr=="2") {
                         clc();
@@ -1317,7 +1391,7 @@ int main() {
     bool canLaunch=true;
     for (ll i=0;i<db.size()&&canLaunch;i++) if (db[i]==' ') canLaunch=false;
     canLaunch=canLaunch||(SYS==APPL);
-    if (!canLaunch) cout<<"Critical error! Homework cannot launch helpers. This is due to a limitation in Windows. Make sure there is no space in your data path!"<<endl;
+    if (!canLaunch) cout<<"Critical error! CodeAssign cannot launch helpers. This is due to a limitation in Windows. Make sure there is no space in your data path!"<<endl;
     //launch helpers
     if (compilerExists&&canLaunch) {
         cout<<"Launching helpers..."<<endl;
@@ -1349,7 +1423,7 @@ int main() {
             }
         }
     }
-    cout<<"Alert! This is a testing version of Homework. Bugs may happen more often than normal and some features may not function. Functions of features may change in later versions of Homework."<<endl;
+    //cout<<"Alert! This is a testing version of CodeAssign. Bugs may happen more often than normal and some features may not function. Functions of features may change in later versions of CodeAssign."<<endl;
     while (true) {
         ll chosenID=0;
         string target="";
@@ -1361,7 +1435,7 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to Homework(v1.5 beta 4) for C++ Programming Club."<<endl;
+        cout<<"Welcome to CodeAssign(v1.5) for C++ Programming Club."<<endl;
         if (debugMd) cout<<"Alert! Debug mode enabled! Type \"debug\" to disable debug mode."<<endl;
         cout<<"Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         if (rand()%5==0) cout<<"Tip:"<<tips[rand()%tips.size()]<<endl;
@@ -1508,7 +1582,7 @@ int main() {
                                         getline(hwfnmrd,hwfnm);
                                         hwfnmrd.close();
                                         asmt.push_back({newnm,0,hwfnm,date()});
-                                    } else cout<<"Missing Homework file!"<<endl;
+                                    } else cout<<"Missing file!"<<endl;
                                 }
                             } else {
                                 cout<<"Unexpected error:Missing contents file!"<<endl;
@@ -1517,13 +1591,13 @@ int main() {
                             removeWithinFolder(db+"tmp/");
                             if (autosave) savedata();
                             continue;
-                        } else cout<<"Error! HWPKG files can only opened in macOS versions of Homework!"<<endl;
+                        } else cout<<"Error! hwpkg files can only opened in macOS versions of CodeAssign!"<<endl;
                     }
                 }
                 if (pkgpth.size()>=3) {
                     if (pkgpth.substr(pkgpth.size()-3,3)==".hw") {
                         if (SYS!=APPL) {
-                            cout<<"Error! HW files can only be opened in the macOS version of Homework!"<<endl;
+                            cout<<"Error! hw files can only be opened in the macOS version of CodeAssign!"<<endl;
                         }
                         idfile=true;
                         string newname="";
@@ -1549,9 +1623,9 @@ int main() {
                 if (!idfile) {
                     if (pkgpth.size()>=5) {
                         if (pkgpth.substr(pkgpth.size()-5,5)!=".hwfx") {
-                            cout<<"Unidentified file. Do not tamper with file extensions! Homework will take this as a hwfX file."<<endl;
+                            cout<<"Unidentified file. Do not tamper with file extensions!"<<endl;
                         }
-                    } else cout<<"Unidentified file. Do not tamper with file extensions! Homework will take this as a hwfX file."<<endl;
+                    } else cout<<"Unidentified file. Do not tamper with file extensions!"<<endl;
                     if (!idfile) {
                         if (!readHwfx(pkgpth,vq,target,chosenID)) cout<<"Error importing file"<<endl;
                     }
@@ -1671,7 +1745,7 @@ int main() {
                     }
                     if (autosave) savedata();
                 } else if (setans=="3") {
-                    cout<<"About multicore:Your processor may be capable of running multiple tasks at once. Using multicore settings will evaluate homework using more cores. "<<endl<<"Input the amount of cores."<<endl;
+                    cout<<"About multicore:Your processor may be capable of running multiple tasks at once. Using multicore settings will evaluate data using more cores. "<<endl<<"Input the amount of cores."<<endl;
                     if (SYS==APPL) {
                         if (compcore==0) cout<<"Suggestion is unavailble."<<endl;
                         else if (compcore<=3) cout<<"Using one core is recommended."<<endl;
@@ -1884,7 +1958,7 @@ int main() {
                         }
                         if (autosave) savedata();
                     } else {
-                        cout<<"The Windows version of Homework does not support sound yet."<<endl;
+                        cout<<"The Windows version of CodeAssign does not support sound yet."<<endl;
                     }
                 } else if (setans=="5") {
                     if (autosave) {
@@ -2056,7 +2130,7 @@ int main() {
                             system((cmdenc+" -in "+safespace(cryf)+" -out "+safespace(cryof)).c_str());
                         } else cout<<"File error!"<<endl;
                     } else {
-                        cout<<"Crypto system is only available on the Mac version of Homework."<<endl;
+                        cout<<"Crypto system is only available on the Mac version of CodeAssign."<<endl;
                     }
                 } else if (vtmp=="batchmake") {
                     #if CANUSEFS
@@ -2279,6 +2353,25 @@ int main() {
                     if (contCnt>0) {
                         if (!writeCore(outpth,masterPkg)) cout<<"hwfX file created at "<<outpth<<endl;
                     } else cout<<"No assignments loaded! No file created."<<endl;
+                } else if (vtmp=="aes") {
+                    cout<<"AES test."<<endl<<"The \"All Diagnostics\" running mode is recommended for this to prevent any memory leaks."<<endl;
+                    //first test with random keys and IV
+                    /*
+                     TESTS:
+                     multithreaded aes test with big amounts of data
+                     single threaded aes test with big amounts of data
+                     multiple password/iv test with medium amounts of data
+                     */
+                    cout<<"Section 1:AES-128-CBC test"<<endl;
+                    cout<<"Test 1: Multiple password/iv test."<<endl;
+                    testAes(4096, 8192, 1, 16);
+                    cout<<"Test 2:Data test."<<endl;
+                    testAes(16,1048576, 1, 16);
+                    testAes(16,1048576, 2, 16);
+                    testAes(16,1048576, 4, 16);
+                    testAes(16,1048576, 8, 16);
+                    testAes(16,1048576, 16, 16);
+                    testAes(16,1048576, 32, 16);
                 } else {
                     for (ll i=0;i<asmt.size();i++) {
                         string cmpTmp=asmt[i].name;
@@ -2297,7 +2390,7 @@ int main() {
             clc();
             ifstream bundltest(db+target);
             if (!bundltest.good()) {
-                cout<<"Error! Homework file missing."<<endl;
+                cout<<"Error! File missing."<<endl;
                 continue;
             }
             string hwfxVerf;
@@ -2537,7 +2630,7 @@ int main() {
                     dtpt--;
                     //DELETE EM
                     removeWithinFolder(db+"tmp/");
-                } else cout<<"Error! HW files can only be opened in the macOS version of Homework!"<<endl;
+                } else cout<<"Error! HW files can only be opened in the macOS version of CodeAssign!"<<endl;
             }
             while (true) {
                 cout<<endl<<probname<<endl<<"Your current score:"<<asmt[chosenID].score<<endl<<"--------"<<endl<<"Problem description:"<<endl;
@@ -2613,7 +2706,7 @@ int main() {
                         ifstream codeverf(cdpth);
                         if (codeverf.good()) {
                             codeverf.close();
-                            fcopy(cdpth,db+"tmp/preppedcode.cpp");
+                            fcopy(cdpth, db+"tmp/preppedcode.cpp");
                             fcopy(cdpth,db+target+".cpp");
                             //MARK:Compile
                             string compilerArg="";
