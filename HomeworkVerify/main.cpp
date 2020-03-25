@@ -1,4 +1,4 @@
-#define CANUSEFS 0
+#define CANUSEFS 1
 #define APPL 0
 #define WIN 1
 #define SYS 0
@@ -251,7 +251,7 @@ void install(bool comple) {
     tmp=gpphelperw();
 #endif
     if (SYS==APPL) for (ll i=0;i<105040;i++) installer<<tmp[i];
-    else if (SYS==WIN) for (ll i=0;i<1936486;i++) installer<<tmp[i];
+    else if (SYS==WIN) for (ll i=0;i<1928070;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"gpphelper"+pstfx);
     
@@ -906,6 +906,7 @@ void setupCompiler(ll &newUsr,bool &compilerExists,vector<compilerInfo>&compiler
                         preferredCompiler=compilers[i].alias;
                         compilerExists=true;
                         testCompiler.close();
+                        break;
                     }
                 }
             }
@@ -954,7 +955,7 @@ void setupCompiler(ll &newUsr,bool &compilerExists,vector<compilerInfo>&compiler
         if (newUsr) {
             cout<<"A compiler cannot be found. A compiler allows you and CodeAssign to execute code."<<endl;
             if (SYS==APPL) cout<<"To install a compiler, open the terminal and type in \"xcode-select --install\".";
-            else if (SYS==WIN) cout<<"To install a compiler, you can install a supported IDE, like Code::Blocks and Dev-C++.";
+            else if (SYS==WIN) cout<<"To install a compiler, you can install a supported IDE, like Code::Blocks(This compiler may not work with CodeAssign) and Dev-C++(recommended).";
             cout<<" Once installed, CodeAssign will detect the compiler automatically."<<endl;
             cout<<"You can:"<<endl;
         } else {
@@ -1046,7 +1047,7 @@ void setupCompiler(ll &newUsr,bool &compilerExists,vector<compilerInfo>&compiler
                         else if (SYS==WIN) cout<<"Dev-C++ and Code::Blocks";
                         cout<<" compiler cannot be found."<<endl;
                         if (SYS==APPL) cout<<"To install the Xcode Clang compiler, open Terminal and type in \"xcode-select --install\"."<<endl;
-                        else if (SYS==WIN) cout<<"Please install Dev-C++, Code::Blocks, or set your own custom compiler."<<endl;
+                        else if (SYS==WIN) cout<<"Please install Dev-C++(recommended), Code::Blocks(This compiler may not work with CodeAssign), or set your own custom compiler."<<endl;
                         cout<<"If you do have a compiler on the system, set it as a custom compiler and report it so CodeAssign can detect it in future versions!"<<endl;
                         cout<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use CodeAssign without evaluation features"<<endl;
                     }
@@ -2268,6 +2269,7 @@ int main() {
                                     if (testIfCustom.good()) {
                                         goodpfcomp=i;
                                         testIfCustom.close();
+                                        break;
                                     }
                                     testIfCustom.close();
                                 }
