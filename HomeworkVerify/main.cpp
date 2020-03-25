@@ -1,4 +1,4 @@
-#define CANUSEFS 0
+#define CANUSEFS 1
 #define APPL 0
 #define WIN 1
 #define SYS 0
@@ -443,7 +443,7 @@ void nml(string &s) {
     }
 }
 void changelog() {
-    cout<<"What's changed in v1.5.1:"<<endl<<"Custom compilers"<<endl<<"Minor improvements and bug fixes"<<endl;
+    cout<<"What's changed in v1.5.1:"<<endl<<"CodeAssign is now 1 year old!"<<endl<<"Custom compilers"<<endl<<"Problem loading is now instant"<<endl<<"Minor improvements and bug fixes"<<endl;
 }
 //MARK:MAIN
 ll pkgImport(ifstream &rdpkg, string &newPkg, string impItm) {
@@ -465,7 +465,7 @@ ll pkgImport(ifstream &rdpkg, string &newPkg, string impItm) {
 }
 void writeHwfx(string &pkgpth,bool &impFail,string &disTtl,string &newPkg) {
     impFail=false;
-    newPkg="HwfxContents::Payload\nHwfxContents::Title\n";
+    newPkg="HwfxContents::Payload\nHwfxContents::StartCache\nHwfxContents::Title\n";
     ifstream rdpkg(pkgpth+"/title.txt",ios::binary);
     if (pkgImport(rdpkg,newPkg,"Title")==-1) impFail=true;
     rdpkg.close();
@@ -510,6 +510,7 @@ void writeHwfx(string &pkgpth,bool &impFail,string &disTtl,string &newPkg) {
             break;
         }
     }
+    newPkg+="HwfxContents::EndCache\n";
     ll testSets=1;
     while (true) {
         ifstream intst(pkgpth+"/in"+to_string(testSets)+".txt"),outtst(pkgpth+"/out"+to_string(testSets)+".txt");
@@ -694,7 +695,7 @@ bool readHwfxCore(vector<string>&reLd,string pkgpth,bool &vq) {
         }
         return 0;
     }
-    if (!gotCnt) cout<<"Error reading assignment count!"<<endl;
+    if (!gotCnt) cout<<"Error reading problem count!"<<endl;
     if (disLen<dtsz) {
         cout<<"Error! File size does not match!"<<endl;
         return 0;
@@ -764,7 +765,15 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
         for (ll i=parsel;i<parserr;i++) {
             if (reLd[i]=="HwfxContents::Title"&&i+1<parserr) nm=nm+reLd[i+1];
         }
+        ll cachel=-1,cacher=-1;
+        for (ll i=parsel;i<parserr;i++) {
+            if (reLd[i]=="HwfxContents::StartCache") cachel=i;
+            else if (reLd[i]=="HwfxContents::EndCache") cacher=i;
+        }
         parsel=parserr+1;
+        if (cachel+1>cacher-1) {
+            cout<<"Cache error!"<<endl;
+        }
         string newname="";
         while (true) {
             newname="";
@@ -775,6 +784,16 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
                 break;
             }
             testDup.close();
+        }
+        if (cachel!=-1&&cacher!=-1) {
+            ofstream outputCache(db+"cache"+newname);
+            if (outputCache.good()) {
+                outputCache<<reLd[cachel+1];
+                for (ll i=cachel+1;i<=cacher-1;i++) {
+                    outputCache<<endl<<reLd[i];
+                }
+                outputCache.close();
+            } else cout<<"Error writing cache!"<<endl;
         }
         string lvconv=db+newname;
         writeCore(lvconv,dtplyd);
@@ -1062,11 +1081,6 @@ int main() {
     if (SYS==WIN) exePost=".exe";
     //TODO:Add batch evaluation for fs
     //TODO:Add search
-    //TODO:Add seek so that the problem can load before the user can submit
-    //TODO:Add cache:save decrypted description,exin, and exout data there
-    /*
-     Cache file:cache+FILENAME
-     */
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -1116,7 +1130,7 @@ int main() {
         easter.push_back({"You kiss your mother with that mouth?","fack","If you see kay, why oh you?"});
         easter.push_back({"My name!","michel","That's me!"});
         easter.push_back({"Language of the future...","c++","That's the language!"});
-        easter.push_back({"MINE! MINE!","lucy","Do your assignments... and come talk to me. Tell me that I sent you"});
+        easter.push_back({"MINE! MINE!","lucy","Do your problems... and come talk to me. Tell me that I sent you"});
         easter.push_back({"Cat Spring","cucumber","Cats like them... I think"});
         easter.push_back({"Best subject","math","Awesome Math!"});
         easter.push_back({"Slap his thigh!","lightning","Lightning and the thunder..."});
@@ -1137,9 +1151,9 @@ int main() {
     }
     vector<string>tips;
     if (true) {
-        tips.push_back("Type make into the main menu to create your own assignments!");
-        tips.push_back("If you have too many files, consider using keep assignments and limit items in settings!");
-        tips.push_back("Try setting multiple threads in settings to evaluate your assignments faster!");
+        tips.push_back("Type make into the main menu to create your own problems!");
+        tips.push_back("If you have too many files, consider using keep problems and limit items in settings!");
+        tips.push_back("Try setting multiple threads in settings to evaluate your problems faster!");
         tips.push_back("Type changelog into the main menu to view the changelog!");
         tips.push_back("Type the name of a question into the main menu!");
         tips.push_back("If you're having errors, try typing \"hreset\" into the main menu!");
@@ -1512,7 +1526,7 @@ int main() {
             vector<strWithInt>curGroupContents;
             ll curGrpCnt=0;
             if (containsNonK) {
-                curGroupContents.push_back((strWithInt){"Incomplete Assignments:",-1});
+                curGroupContents.push_back((strWithInt){"Incomplete Problems:",-1});
                 for (ll i=0;i<asmt.size();i++) {
                     if (asmt[i].score<100) {
                         curGroupContents.push_back((strWithInt){asmt[i].name+":"+to_string(asmt[i].score),i});
@@ -1528,7 +1542,7 @@ int main() {
             }
             if (curGroupContents.size()!=0&&containsK) curGroupContents.push_back((strWithInt){"--------",-1});
             if (containsK) {
-                curGroupContents.push_back((strWithInt){"Completed assignments:",-1});
+                curGroupContents.push_back((strWithInt){"Completed Problems:",-1});
                 for (ll i=0;i<asmt.size();i++) {
                     if (asmt[i].score==100) {
                         curGroupContents.push_back((strWithInt){asmt[i].name+":"+to_string(asmt[i].score),i});
@@ -1579,7 +1593,7 @@ int main() {
         ll homeansNum=atoll(homeans.c_str());
         if (homeans!="4") clc();
         if (homeans=="1") {
-            cout<<"Please drag the assignment file into this window.";
+            cout<<"Please drag the problem file into this window.";
             if (SYS==APPL) cout<<"(.hwfx,.hw,.hwpkg)"<<endl;
             else if (SYS==WIN) cout<<"(.hwfx)"<<endl;
             string pkgpth;
@@ -1820,7 +1834,7 @@ int main() {
                     clc();
                     if (autosave) savedata();
                 } else if (setans=="2") {
-                    cout<<"About keep assignments:Assignments older than the set time will be automatically deleted."<<endl<<"Select your preferred time."<<endl<<"[1]1 week"<<endl<<"[2]2 weeks"<<endl<<"[3]1 month"<<endl<<"[4]2 months"<<endl<<"[5]6 months"<<endl<<"[6]Forever"<<endl;
+                    cout<<"About keep problems:Problems older than the set time will be automatically deleted."<<endl<<"Select your preferred time."<<endl<<"[1]1 week"<<endl<<"[2]2 weeks"<<endl<<"[3]1 month"<<endl<<"[4]2 months"<<endl<<"[5]6 months"<<endl<<"[6]Forever"<<endl;
                     string settmp;
                     getline(cin,settmp);
                     clc();
@@ -1828,12 +1842,12 @@ int main() {
                         ll timetmp = atoll(settmp.c_str());
                         if (timetmp>0&&timetmp<7) {
                             rten=timetmp;
-                            if (rten==1) cout<<"Assignment time successfully set to 1 week."<<endl;
-                            else if (rten==2) cout<<"Assignment time successfully set to 2 weeks."<<endl;
-                            else if (rten==3) cout<<"Assignment time successfully set to 1 month."<<endl;
-                            else if (rten==4) cout<<"Assignment time successfully set to 2 months."<<endl;
-                            else if (rten==5) cout<<"Assignment time successfully set to 6 months."<<endl;
-                            else if (rten==6) cout<<"Assignment time successfully set to forever."<<endl;
+                            if (rten==1) cout<<"Problem time successfully set to 1 week."<<endl;
+                            else if (rten==2) cout<<"Problem time successfully set to 2 weeks."<<endl;
+                            else if (rten==3) cout<<"Problem time successfully set to 1 month."<<endl;
+                            else if (rten==4) cout<<"Problem time successfully set to 2 months."<<endl;
+                            else if (rten==5) cout<<"Problem time successfully set to 6 months."<<endl;
+                            else if (rten==6) cout<<"Problem time successfully set to forever."<<endl;
                         }
                     }
                     if (autosave) savedata();
@@ -2590,7 +2604,7 @@ int main() {
                         debugMd=1;
                     }
                 } else if (vtmp=="make") {
-                    cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Drag the assignment directory into this window."<<endl;
+                    cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Your folder"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Drag the problem directory into this window."<<endl;
                     string pkgpth;
                     getline(cin,pkgpth);
                     nml(pkgpth);
@@ -2674,14 +2688,14 @@ int main() {
                         }
                         clc();
                         if (doItAgain=="1") {
-                            cout<<"Please drag the assignment directory into this window."<<endl;
+                            cout<<"Please drag the problem directory into this window."<<endl;
                             getline(cin,pkgpth);
                             nml(pkgpth);
                         } else break;
                     }
                     if (contCnt>0) {
                         if (!writeCore(outpth,masterPkg)) cout<<"hwfX file created at "<<outpth<<endl;
-                    } else cout<<"No assignments loaded! No file created."<<endl;
+                    } else cout<<"No problems loaded! No file created."<<endl;
                 } else if (vtmp=="aes") {
                     cout<<"AES test."<<endl<<"The \"All Diagnostics\" running mode is recommended for this to prevent any memory leaks."<<endl;
                     //first test with random keys and IV
@@ -2716,6 +2730,7 @@ int main() {
             }
         }
         if (vq) {
+            bool useCache=false;
             clc();
             ifstream bundltest(db+target);
             if (!bundltest.good()) {
@@ -2737,8 +2752,19 @@ int main() {
             if (hwfxVerf=="HwfxContents::START") {
                 string pkgpth=db+target;
                 vector<string>reLd;
-                bool vqDummy=0;
-                readHwfxCore(reLd,pkgpth,vqDummy);
+                ifstream testCache(db+"cache"+target);
+                if (testCache.good()) {
+                    string tmpgetcache;
+                    useCache=true;
+                    while (!testCache.eof()) {
+                        getline(testCache,tmpgetcache);
+                        reLd.push_back(tmpgetcache);
+                    }
+                    testCache.close();
+                } else {
+                    bool vqDummy=0;
+                    readHwfxCore(reLd,pkgpth,vqDummy);
+                }
                 auto c= chrono::high_resolution_clock::now();
                 //read in all except exin and inset
                 //use maps to verify exin and inset
@@ -2784,7 +2810,6 @@ int main() {
                 }
                 map<ll,dtCont>exCnt;
                 map<ll,dtCont>stCnt;
-                map<ll,dtCont>stPos;
                 for (ll i=0;i<reLd.size();i++) {
                     if (reLd[i].size()>18) {
                         if (reLd[i].substr(0,18)=="HwfxContents::EXIN") {
@@ -2808,12 +2833,6 @@ int main() {
                     rbndex=max(rbndex,it->first);
                 }
                 if (rbndex!=exCnt.size()) cout<<"Missing examples! "<<exCnt.size()<<" examples found, "<<rbndex<<" examples expected."<<endl;
-                ll rbndst=0;
-                for (map<ll,dtCont>::iterator it=stCnt.begin();it!=stCnt.end();it++) {
-                    if (it->second.cnt!=2) cout<<"Error with i/o set #"<<it->first<<endl;
-                    rbndst=max(rbndst,it->first);
-                }
-                if (rbndst!=stCnt.size()) cout<<"Missing sets! "<<stCnt.size()<<" sets found, "<<rbndst<<" sets expected."<<endl;
                 for (ll i=1;i<=rbndex;i++) {
                     vector<string>exTmp;
                     for (ll j=exCnt[i].ipos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) exTmp.push_back(reLd[j]);
@@ -2822,19 +2841,28 @@ int main() {
                     for (ll j=exCnt[i].opos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) exTmp.push_back(reLd[j]);
                     outex.push_back(exTmp);
                 }
-                for (ll i=1;i<=rbndst;i++) {
-                    vector<string>stTmp;
-                    for (ll j=stCnt[i].ipos+1;j<reLd.size();j++) {
-                        if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
-                        stTmp.push_back(reLd[j]);
+                
+                if (!useCache) {
+                    ll rbndst=0;
+                    for (map<ll,dtCont>::iterator it=stCnt.begin();it!=stCnt.end();it++) {
+                        if (it->second.cnt!=2) cout<<"Error with i/o set #"<<it->first<<endl;
+                        rbndst=max(rbndst,it->first);
                     }
-                    indata.push_back(stTmp);
-                    stTmp.clear();
-                    for (ll j=stCnt[i].opos+1;j<reLd.size();j++) {
-                        if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
-                        stTmp.push_back(reLd[j]);
+                    if (rbndst!=stCnt.size()) cout<<"Missing sets! "<<stCnt.size()<<" sets found, "<<rbndst<<" sets expected."<<endl;
+                    for (ll i=1;i<=rbndst;i++) {
+                        vector<string>stTmp;
+                        for (ll j=stCnt[i].ipos+1;j<reLd.size();j++) {
+                            if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
+                            stTmp.push_back(reLd[j]);
+                        }
+                        indata.push_back(stTmp);
+                        stTmp.clear();
+                        for (ll j=stCnt[i].opos+1;j<reLd.size();j++) {
+                            if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
+                            stTmp.push_back(reLd[j]);
+                        }
+                        outdata.push_back(stTmp);
                     }
-                    outdata.push_back(stTmp);
                 }
                 if (debugMd) {
                     cout<<"Parsing stage 2 done in "<<chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - c).count()<<"ms"<<endl;
@@ -3104,6 +3132,44 @@ int main() {
                             else compile=false;
                             testcomp.close();
                             if (compile) {
+                                if (useCache) {
+                                    string pkgpth=db+target;
+                                    vector<string>reLd;
+                                    bool vqDummy=0;
+                                    readHwfxCore(reLd,pkgpth,vqDummy);
+                                    map<ll,dtCont>stCnt;
+                                    for (ll i=0;i<reLd.size();i++) {
+                                        if (reLd[i].size()>18) {
+                                            if (reLd[i].substr(0,18)=="HwfxContents::INST") {
+                                                stCnt[atoll(reLd[i].substr(18).c_str())].cnt++;
+                                                stCnt[atoll(reLd[i].substr(18).c_str())].ipos=i;
+                                            } else if (reLd[i].substr(0,18)=="HwfxContents::OUST") {
+                                                stCnt[atoll(reLd[i].substr(18).c_str())].cnt++;
+                                                stCnt[atoll(reLd[i].substr(18).c_str())].opos=i;
+                                            }
+                                        }
+                                    }
+                                    ll rbndst=0;
+                                    for (map<ll,dtCont>::iterator it=stCnt.begin();it!=stCnt.end();it++) {
+                                        if (it->second.cnt!=2) cout<<"Error with i/o set #"<<it->first<<endl;
+                                        rbndst=max(rbndst,it->first);
+                                    }
+                                    if (rbndst!=stCnt.size()) cout<<"Missing sets! "<<stCnt.size()<<" sets found, "<<rbndst<<" sets expected."<<endl;
+                                    for (ll i=1;i<=rbndst;i++) {
+                                        vector<string>stTmp;
+                                        for (ll j=stCnt[i].ipos+1;j<reLd.size();j++) {
+                                            if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
+                                            stTmp.push_back(reLd[j]);
+                                        }
+                                        indata.push_back(stTmp);
+                                        stTmp.clear();
+                                        for (ll j=stCnt[i].opos+1;j<reLd.size();j++) {
+                                            if (reLd[j].size()>=14) if (reLd[j].substr(0,14)=="HwfxContents::") break;
+                                            stTmp.push_back(reLd[j]);
+                                        }
+                                        outdata.push_back(stTmp);
+                                    }
+                                }
                                 //run multicore
                                 ll folders=min((ll)indata.size(),mltcore);
                                 for (ll i=1;i<=folders;i++) {
