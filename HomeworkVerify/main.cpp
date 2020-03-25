@@ -1,4 +1,4 @@
-#define CANUSEFS 1
+#define CANUSEFS 0
 #define APPL 0
 #define WIN 1
 #define SYS 0
@@ -37,8 +37,7 @@
 #endif
 
 #if SYS==WIN
-#include <windows.h>
-#include <Lmcons.h>
+#include <Shlobj.h>
 #endif
 using namespace std;
 #if CANUSEFS
@@ -238,8 +237,8 @@ void install(bool comple) {
         makeDir(db+"tmp2/");
         ofstream disExist(db+"tmp2/exists");
     }
-    //MAC:Install gpphelper(104816),openhelper(203792),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
-    //WIN:Install openhelper(1944946),gpphelper(1928070),hkill(1926234)
+    //MAC:Install gpphelper(105040),openhelper(203792),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //WIN:Install openhelper(1957744),gpphelper(1928070),hkill(1926234)
     string pstfx="";
     if (SYS==WIN) pstfx=".exe";
     ofstream installer;
@@ -251,8 +250,8 @@ void install(bool comple) {
 #elif SYS==WIN
     tmp=gpphelperw();
 #endif
-    if (SYS==APPL) for (ll i=0;i<104816;i++) installer<<tmp[i];
-    else if (SYS==WIN) for (ll i=0;i<1928070;i++) installer<<tmp[i];
+    if (SYS==APPL) for (ll i=0;i<105040;i++) installer<<tmp[i];
+    else if (SYS==WIN) for (ll i=0;i<1936486;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"gpphelper"+pstfx);
     
@@ -263,7 +262,7 @@ void install(bool comple) {
     tmp=openhelperw();
 #endif
     if (SYS==APPL) for (ll i=0;i<203792;i++) installer<<tmp[i];
-    else if (SYS==WIN) for (ll i=0;i<1944946;i++) installer<<tmp[i];
+    else if (SYS==WIN) for (ll i=0;i<1957744;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"openhelper"+pstfx);
     
@@ -388,7 +387,7 @@ struct dtCont {
     ll cnt;
     ll ipos,opos;
 };
-bool secret[100];
+bool* secret;
 vector<soundlog>audio;
 vector<ll>selaud;
 struct strWithInt {
@@ -1071,11 +1070,15 @@ void setupCompiler(ll &newUsr,bool &compilerExists,vector<compilerInfo>&compiler
     if (compilerExists) newUsr=false;
 }
 int main() {
+    bool winDirDectFail=false;
     #if SYS==WIN
-    char usrn[UNLEN+1];
-    DWORD username_len = UNLEN+1;
-    GetUserName(usrn, &username_len);
-    fname=usrn;
+    WCHAR tmppathvar[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(NULL,CSIDL_PROFILE,NULL,0,tmppathvar))) {
+        wstring tmppathstr(tmppathvar);
+        fname=string(tmppathstr.begin(),tmppathstr.end());
+    } else {
+        winDirDectFail=true;
+    }
     #endif
     string exePost="";
     if (SYS==WIN) exePost=".exe";
@@ -1100,7 +1103,7 @@ int main() {
     strcont["VERS"]=&vers;
     strcont["PREFERREDCOMPILER"]=&preferredCompiler;
     strcont["COMPILERFORMAT"]=&compilerFormat;
-    ll const helpertar=4;
+    ll const helpertar=5;
     rten=6;
     mltcore=1;
     srtmode=1;
@@ -1149,6 +1152,7 @@ int main() {
         easter.push_back({"The Answer","42","The Answer to Life, the Universe and Everything"});
         easter.push_back({"LOL","lolcode","VISIBLE \"Hello World!\""});
     }
+    secret=new bool[easter.size()];
     vector<string>tips;
     if (true) {
         tips.push_back("Type make into the main menu to create your own problems!");
@@ -1174,40 +1178,38 @@ int main() {
     }
     srand(time(0));
     ifstream dbtest;
-    if (SYS==APPL) {
-        dbtest.open("/Users/"+fname);
-        if (!dbtest.good()) {
+    dbtest.open("/Users/"+fname);
+    if ((!dbtest.good()&&SYS!=WIN)||winDirDectFail) {
+        dbtest.close();
+        bool isdev=true;
+        while (true) {
+            if (isdev) {
+                cout<<"Automatic directory detection failed. Trying dev legitmichel777..."<<endl;
+                fname="legitmichel777";
+                isdev=false;
+            } else {
+                cout<<"Automatic directory detection failed. Please enter your username."<<endl;
+                getline(cin,fname);
+            }
+            dbtest.open("/Users/"+fname);
+            if (dbtest.good()) {dbtest.close();break;}
             dbtest.close();
-            bool isdev=true;
             while (true) {
-                if (isdev) {
-                    cout<<"Automatic directory detection failed. Trying dev legitmichel777..."<<endl;
-                    fname="legitmichel777";
-                    isdev=false;
-                } else {
-                    cout<<"Automatic directory detection failed. Please enter your username."<<endl;
-                    getline(cin,fname);
-                }
+                cout<<"Error! Please make sure you entered the right user and is on a supported system(";
+                if (SYS==APPL) cout<<"macOS";
+                else if (SYS==WIN) cout<<"Windows";
+                cout<<"). Please enter your username again."<<endl;
+                getline(cin,fname);
                 dbtest.open("/Users/"+fname);
                 if (dbtest.good()) {dbtest.close();break;}
                 dbtest.close();
-                while (true) {
-                    cout<<"Error! Please make sure you entered the right user and is on a supported system(";
-                    if (SYS==APPL) cout<<"macOS";
-                    else if (SYS==WIN) cout<<"Windows";
-                    cout<<"). Please enter your username again."<<endl;
-                    getline(cin,fname);
-                    dbtest.open("/Users/"+fname);
-                    if (dbtest.good()) {dbtest.close();break;}
-                    dbtest.close();
-                }
-                break;
             }
+            break;
         }
-        dbtest.close();
     }
+    dbtest.close();
     if (SYS==APPL) db = "/Users/"+fname+"/Library/Containers/com.mclm7.homework/";
-    else db = "/Users/"+fname+"/AppData/Roaming/CppHomework/";
+    else db = fname+"/AppData/Roaming/CppHomework/";
     dbtest.open(db+"contents.dwt");
     bool freshins=false;
     bool newUsr=false;
@@ -1238,6 +1240,7 @@ int main() {
                 cout<<"v1.3 of CodeAssign introduces a new storage format, DWT. DWT allows for seamless compatibility between versions of CodeAssign. We'll now convert your old MAN file to DWT!"<<endl;
                 inAppLaunch(db+"convtool"+exePost,"");
                 cout<<"Please reopen CodeAssign."<<endl;
+                delete[] secret;
                 return 0;
             } else cout<<"Unexpected error! MAN save files are only supported on CodeAssign for macOS! Convert this save file to DWT in macOS versions of CodeAssign first."<<endl;
         }
@@ -2396,6 +2399,7 @@ int main() {
                     stopsig.close();
                 }
             }
+            delete[] secret;
             return 0;
         } else if (tolower(homeans[0])=='f'&&homeans.length()==1&&impissue) {
             if (compilerExists&&canLaunch) {
@@ -2406,6 +2410,7 @@ int main() {
                     stopsig.close();
                 }
             }
+            delete[] secret;
             return 0;
         } else if (to_string(homeansNum)==homeans&&homeansNum>=5&&homeansNum<outcnt) { //MARK:Set file
             chosenID=hwpoint[atoll(homeans.c_str())-5];
@@ -2451,6 +2456,7 @@ int main() {
                         stopsig<<"STOP";
                         stopsig.close();
                     }
+                    delete[] secret;
                     return 0;
                 } else if (vtmp=="crypt") {
                     if (SYS==APPL) {
@@ -2581,6 +2587,7 @@ int main() {
                     if (clearall=="CLEAR") {
                         removeFolder(db);
                         cout<<"Files cleared. Program will now force quit."<<endl;
+                        delete[] secret;
                         return 0;
                     }
                 } else if (vtmp=="id") {
@@ -3125,7 +3132,7 @@ int main() {
                             gppbrd<<compilerArg;
                             gppbrd.close();
 //                            cout<<"\""+db+"err"+"\" \""+compilerArg+"\""<<endl;
-                            inAppLaunch(db+"gpphelper"+exePost,fname);
+                            inAppLaunch(db+"gpphelper"+exePost,"");
                             bool compile=true;
                             ifstream testcomp(db+"tmp/exe"+exePost);
                             if (testcomp.good()) compile=true;
