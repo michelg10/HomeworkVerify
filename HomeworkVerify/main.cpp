@@ -53,6 +53,10 @@ struct hw {
     string name;
     string date;
 };
+struct compilerInfo {
+    string pth;
+    string alias;
+};
 string safespace(string s,int OS=SYS) {
     string rturn;
     if (OS==APPL) {
@@ -336,7 +340,7 @@ string iv = "755CA3572C3FAC78";
 string salt = "8C55A67258E39056";
 string cmdenc = "openssl enc -aes-256-cbc -K "+key+" -iv "+iv+" -S "+salt;
 //MARK:END UTILITIES
-ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers,prefersCompiler,overrideDefaultFormat,debugMd;
+ll srtmode,mltcore,rten,compcore,cor=0,incor=0,helperver,sound,autosave,ovrflw,anslock,fsvers,expfsvers,prefersCompiler,debugMd,settingshelp,newusrcompile;
 string lockedf,vers,expvers,preferredCompiler,compilerFormat;
 unsigned char aesKey[32]={28,57,67,10,127,108,14,197,41,73,79,16,242,2,85,227,120,13,53,121,23,109,231,129,210,147,11,128,115,1,242,150};
 map<ll,char>randname;
@@ -439,7 +443,7 @@ void nml(string &s) {
     }
 }
 void changelog() {
-    cout<<"What's changed in v1.5:"<<endl<<"Sandboxing for security"<<endl<<"Answer files"<<endl<<"Limit items"<<endl<<"Batch evaluation"<<endl<<"New cross platform file format:hwfx"<<endl<<"Bug fixes and improvements"<<endl;
+    cout<<"What's changed in v1.5.1:"<<endl<<"Custom compilers"<<endl<<"Minor improvements and bug fixes"<<endl;
 }
 //MARK:MAIN
 ll pkgImport(ifstream &rdpkg, string &newPkg, string impItm) {
@@ -855,6 +859,198 @@ void testAes(ll tstmulcnt,ll tstmulsz,ll tstmulthr,ll tstkeysz) {
     for (ll i=0;i<tstmulcnt;i++) for (ll j=0;j<iv[i].size();j++) delete[] iv[i][j];
     delete[] testData;
 }
+void setupCompiler(ll &newUsr,bool &compilerExists,vector<compilerInfo>&compilers,bool &compilerVirgin) {
+    while (!compilerExists) {
+        ifstream testCompiler;
+        string compilerPath;
+        bool compilerGotRemoved=false;
+        if (prefersCompiler) {
+            compilerPath=preferredCompiler;
+            testCompiler.open(compilerPath);
+            if (testCompiler.good()) compilerExists=true;
+            else compilerExists=false;
+            testCompiler.close();
+        } else {
+            if (preferredCompiler!="") {
+                ll foundPref=-1;
+                for (ll i=0;i<compilers.size()&&foundPref==-1;i++) if (preferredCompiler==compilers[i].alias) foundPref=i;
+                if (foundPref!=-1) {
+                    ifstream testDis(compilers[foundPref].pth);
+                    compilerExists=testDis.good();
+                    testDis.close();
+                } else {
+                    compilerGotRemoved=true;
+                }
+            } else {
+                for (ll i=0;i<compilers.size();i++) {
+                    ifstream testCompiler(compilers[i].pth);
+                    if (testCompiler.good()) {
+                        preferredCompiler=compilers[i].alias;
+                        compilerExists=true;
+                        testCompiler.close();
+                    }
+                }
+            }
+        }
+        
+        if (!compilerVirgin&&compilerExists&&prefersCompiler) { //set a new compiler
+            cout<<"Compiler successfully found."<<endl;
+            if (prefersCompiler) {
+                while (true) {
+                    cout<<"Current compiler format:"<<compilerFormat<<endl<<"Is this correct?"<<endl<<"[1]Yes"<<endl<<"[2]No"<<endl;
+                    string formatcor;
+                    getline(cin,formatcor);
+                    if (formatcor=="1") {
+                        break;
+                    } else if (formatcor=="2") {
+                        clc();
+                        bool masterBreak=false;
+                        while (true) {
+                            cout<<"Please input the new format. Input exit to cancel."<<endl;
+                            string tmpcompilerFormat;
+                            getline(cin,tmpcompilerFormat);
+                            string exitTry=tmpcompilerFormat;
+                            transform(exitTry.begin(),exitTry.end(),exitTry.begin(),::tolower);
+                            if (exitTry=="exit"){
+                                clc();
+                                masterBreak=true;
+                                break;
+                            }
+                            if (tmpcompilerFormat.find("%CODEPATH%")!=string::npos&&tmpcompilerFormat.find("%EXECPATH")!=string::npos) {
+                                compilerFormat=tmpcompilerFormat;
+                                clc();
+                                masterBreak=true;
+                                break;
+                            } else {
+                                clc();
+                                cout<<"Error! Compiler format must include %CODEPATH% (The path to the code) and %EXECPATH% (The path to the output executable)!"<<endl;
+                            }
+                        }
+                        if (masterBreak) break;
+                    }
+                }
+            }
+        }
+        
+        if (compilerExists) break;
+        if (newUsr) {
+            cout<<"A compiler cannot be found. A compiler allows you and CodeAssign to execute code."<<endl;
+            if (SYS==APPL) cout<<"To install a compiler, open the terminal and type in \"xcode-select --install\".";
+            else if (SYS==WIN) cout<<"To install a compiler, you can install a supported IDE, like Code::Blocks and Dev-C++.";
+            cout<<" Once installed, CodeAssign will detect the compiler automatically."<<endl;
+            cout<<"You can:"<<endl;
+        } else {
+            cout<<"Error! Compiler not found!"<<endl;
+        }
+        string compAnsr;
+        if (prefersCompiler) {
+            ll nxtFnd=-1;
+            for (ll i=0;i<compilers.size();i++) {
+                ifstream testIfGoodComp(compilers[i].pth);
+                if (testIfGoodComp.good()) {
+                    nxtFnd=i;
+                    testIfGoodComp.close();
+                    break;
+                }
+            }
+            if (nxtFnd!=-1) {
+                testCompiler.close();
+                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist but the default "<<compilers[nxtFnd].alias<<" compiler does."<<endl<<"[1]Try again with my compiler"<<endl<<"[2]Use CodeAssign's default compiler"<<endl<<"[3]Set new custom compiler"<<endl<<"[4]Use CodeAssign without evaluation features"<<endl;
+                getline(cin,compAnsr);
+                if (compAnsr=="2") {
+                    prefersCompiler=0;
+                    preferredCompiler="";
+                } else if (compAnsr=="3") {
+                    clc();
+                    cout<<"Please drag the desired compiler into this window."<<endl;
+                    getline(cin,preferredCompiler);
+                    nml(preferredCompiler);
+                } else if (compAnsr=="4") {
+                    clc();
+                    break;
+                } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+            } else {
+                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist and CodeAssign cannot find it's default ";
+                if (compilers.size()>=3) {
+                    for (ll i=0;i<compilers.size()-1;i++) cout<<compilers[i].alias<<", ";
+                    cout<<"and"<<compilers[compilers.size()-1].alias;
+                } else if (compilers.size()==2) {
+                    cout<<compilers[0].alias<<" and "<<compilers[1].alias;
+                } else {
+                    cout<<compilers[0].alias;
+                }
+                cout<<" compiler either."<<endl<<"[1]Try again"<<endl<<"[2]Set a new custom compiler"<<endl<<"[3]Try to use the default compiler";
+                if (compilers.size()>1) cout<<"s";
+                cout<<" and try again"<<endl<<"[4]Use CodeAssign without evaluation features"<<endl;
+                getline(cin,compAnsr);
+                if (compAnsr=="2") {
+                    clc();
+                    cout<<"Please drag the desired compiler into this window."<<endl;
+                    getline(cin,preferredCompiler);
+                    nml(preferredCompiler);
+                } else if (compAnsr=="3") {
+                    prefersCompiler=0;
+                    preferredCompiler="";
+                } else if (compAnsr=="4") {
+                    clc();
+                    break;
+                } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+            }
+        } else {
+            if (compilerGotRemoved) {
+                cout<<"Your previous "<<preferredCompiler<<" compiler is removed by CodeAssign. ";
+                ll nxtFnd=-1;
+                for (ll i=0;i<compilers.size();i++) {
+                    ifstream testIfGoodComp(compilers[i].pth);
+                    if (testIfGoodComp.good()) {
+                        nxtFnd=i;
+                        break;
+                    }
+                }
+                if (nxtFnd==-1) cout<<"We couldn't find any other default compilers either."<<endl;
+                else cout<<" However, the "<<compilers[nxtFnd].alias<<" compiler does exist."<<endl;
+            } else {
+                //try other default compilers and if they do work, use them.
+                ll nxtFnd=-1;
+                for (ll i=0;i<compilers.size();i++) {
+                    ifstream testIfGoodComp(compilers[i].pth);
+                    if (testIfGoodComp.good()) {
+                        nxtFnd=i;
+                        break;
+                    }
+                }
+                if (nxtFnd==-1) {
+                    if (newUsr) {
+                        cout<<"[1]Try detecting a compiler again."<<endl<<"[2]Set a custom compiler (Advanced)"<<endl<<"[3]Set up a compiler later and use CodeAssign in read only mode"<<endl;
+                    } else {
+                        cout<<"CodeAssign's default ";
+                        if (SYS==APPL) cout<<"Xcode";
+                        else if (SYS==WIN) cout<<"Dev-C++ and Code::Blocks";
+                        cout<<" compiler cannot be found."<<endl;
+                        if (SYS==APPL) cout<<"To install the Xcode Clang compiler, open Terminal and type in \"xcode-select --install\"."<<endl;
+                        else if (SYS==WIN) cout<<"Please install Dev-C++, Code::Blocks, or set your own custom compiler."<<endl;
+                        cout<<"If you do have a compiler on the system, set it as a custom compiler and report it so CodeAssign can detect it in future versions!"<<endl;
+                        cout<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use CodeAssign without evaluation features"<<endl;
+                    }
+                    getline(cin,compAnsr);
+                    if (compAnsr=="2") {
+                        clc();
+                        cout<<"Please drag the desired compiler into this window."<<endl;
+                        getline(cin,preferredCompiler);
+                        nml(preferredCompiler);
+                        prefersCompiler=1;
+                    } else if (compAnsr=="3") {
+                        clc();
+                        break;;
+                    } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
+                }
+            }
+        }
+        clc();
+        compilerVirgin=false;
+    }
+    if (compilerExists) newUsr=false;
+}
 int main() {
     #if SYS==WIN
     char usrn[UNLEN+1];
@@ -867,6 +1063,10 @@ int main() {
     //TODO:Add batch evaluation for fs
     //TODO:Add search
     //TODO:Add seek so that the problem can load before the user can submit
+    //TODO:Add cache:save decrypted description,exin, and exout data there
+    /*
+     Cache file:cache+FILENAME
+     */
     intcont["SOUND"]=&sound;
     intcont["CORRECT"]=&cor;
     intcont["INCORRECT"]=&incor;
@@ -879,8 +1079,9 @@ int main() {
     intcont["ANSLOCK"]=&anslock;
     intcont["FSVERS"]=&fsvers;
     intcont["HASPREFERREDCOMPILER"]=&prefersCompiler;
-    intcont["OVERRIDEDEFAULTFORMAT"]=&overrideDefaultFormat;
     intcont["DEBUG"]=&debugMd;
+    intcont["SETTINGSHELP"]=&settingshelp;
+    intcont["NEWUSRCOMPILE"]=&newusrcompile;
     strcont["LOCKEDF"]=&lockedf;
     strcont["VERS"]=&vers;
     strcont["PREFERREDCOMPILER"]=&preferredCompiler;
@@ -894,7 +1095,7 @@ int main() {
     autosave=1;
     ovrflw=0;
     expfsvers=2;
-    expvers="1.5";
+    expvers="1.5.1";
     debugMd=0;
     compilerFormat="%CODEPATH% -o %EXECPATH%";
     preferredCompiler="";
@@ -926,14 +1127,28 @@ int main() {
         easter.push_back({"Greatest club of all time","c++ programming","Yee!"});
         easter.push_back({"Best calculator","calculatorx","Powerful."});
         easter.push_back({"VB sucks like VB","vb","One who sucks like VB"});
+        easter.push_back({"Be careful...","hairline","Look after yourself."});
+        easter.push_back({"Elon's fail","cybertruck","SMASH!"});
+        easter.push_back({"+x","martin garrix","PIZZA!"});
+        easter.push_back({"The precursors...","c","(C++)--"});
+        easter.push_back({"UPDAAATTTEEEE","windows","Update and restart? Please?"});
+        easter.push_back({"The Answer","42","The Answer to Life, the Universe and Everything"});
+        easter.push_back({"LOL","lolcode","VISIBLE \"Hello World!\""});
     }
     vector<string>tips;
     if (true) {
         tips.push_back("Type make into the main menu to create your own assignments!");
         tips.push_back("If you have too many files, consider using keep assignments and limit items in settings!");
-        tips.push_back("Try setting multiple cores in settings to evaluate your assignments faster!");
+        tips.push_back("Try setting multiple threads in settings to evaluate your assignments faster!");
         tips.push_back("Type changelog into the main menu to view the changelog!");
         tips.push_back("Type the name of a question into the main menu!");
+        tips.push_back("If you're having errors, try typing \"hreset\" into the main menu!");
+        tips.push_back("Visit C++ Programming Club on SHSID Connect! https://connect.shs.cn/club/338_C++_Programming_Club/");
+        if (SYS==APPL) {
+            tips.push_back("If the window doesn't look nice or the text is too small, try going to Terminal->Preferences->Profiles, and customising some settings! Alternatively, ask for the \"Friendly\" terminal profile from Michel!");
+        } else if (SYS==WIN) {
+            tips.push_back("If the window doesn't look nice or the text is too small, try right clicking the top of the window, selecting properties, and making some customisations!");
+        }
     }
     //openssl enc -aes-256-cbc -K FB384BE6E7009275 -iv 755CA3572C3FAC78 -S 8C55A67258E39056
     clc();
@@ -984,6 +1199,8 @@ int main() {
     bool newUsr=false;
     if (!dbtest.good()) {
         newUsr=true;
+        settingshelp=true;
+        newusrcompile=true;
         freshins=true;
         install(1);
         ofstream mancreate(db+"contents.dwt");
@@ -1123,9 +1340,9 @@ int main() {
         }
     }
     in.close();
-    if (vers!=expvers) {
+    if (vers!=expvers&&!newUsr) {
         if (vers<expvers) {
-            cout<<"Welcome to CodeAssign v1.5!"<<endl;
+            cout<<"Welcome to CodeAssign v1.5.1!"<<endl;
             changelog();
         }
     }
@@ -1143,7 +1360,7 @@ int main() {
         impfsVers=true;
     }
     fsvers=2;
-    vers="1.5";
+    vers=expvers;
     ofstream out(db+"db.txt");
     out<<db;
     out.close();
@@ -1204,10 +1421,6 @@ int main() {
     
     bool compilerExists=false;
     bool compilerVirgin=true;
-    struct compilerInfo {
-        string pth;
-        string alias;
-    };
     vector<compilerInfo>compilers;
     if (SYS==APPL) {
         compilers.push_back((compilerInfo){"/usr/bin/g++","Xcode"});
@@ -1217,177 +1430,13 @@ int main() {
         compilers.push_back((compilerInfo){"/Program Files (x86)/CodeBlocks/MinGW/bin/g++.exe","Code::Blocks (x86)"});
         compilers.push_back((compilerInfo){"/Program Files/CodeBlocks/MinGW/bin/g++.exe","Code::Blocks"});
     }
-    while (!compilerExists) {
-        ifstream testCompiler;
-        string compilerPath;
-        bool compilerGotRemoved=false;
-        if (prefersCompiler) {
-            compilerPath=preferredCompiler;
-            testCompiler.open(compilerPath);
-            if (testCompiler.good()) compilerExists=true;
-            else compilerExists=false;
-            testCompiler.close();
-        } else {
-            if (preferredCompiler!="") {
-                ll foundPref=-1;
-                for (ll i=0;i<compilers.size()&&foundPref==-1;i++) if (preferredCompiler==compilers[i].alias) foundPref=i;
-                if (foundPref!=-1) {
-                    ifstream testDis(compilers[foundPref].pth);
-                    compilerExists=testDis.good();
-                    testDis.close();
-                } else {
-                    compilerGotRemoved=true;
-                }
-            } else {
-                for (ll i=0;i<compilers.size();i++) {
-                    ifstream testCompiler(compilers[i].pth);
-                    if (testCompiler.good()) {
-                        preferredCompiler=compilers[i].alias;
-                        compilerExists=true;
-                    }
-                }
-            }
-        }
-        
-        if (!compilerVirgin&&compilerExists) { //set a new compiler
-            cout<<"Compiler successfully found."<<endl;
-            if (prefersCompiler) {
-                while (true) {
-                    cout<<"Current compiler format:"<<compilerFormat<<endl<<"Is this correct?"<<endl<<"[1]Yes"<<endl<<"[2]No"<<endl;
-                    string formatcor;
-                    getline(cin,formatcor);
-                    if (formatcor=="1") {
-                        break;
-                    } else if (formatcor=="2") {
-                        clc();
-                        bool masterBreak=false;
-                        while (true) {
-                            cout<<"Please input the new format"<<endl;
-                            getline(cin,compilerFormat);
-                            if (compilerFormat.find("%CODEPATH%")!=string::npos&&compilerFormat.find("%EXECPATH")!=string::npos) {
-                                clc();
-                                masterBreak=true;
-                                break;
-                            } else {
-                                clc();
-                                cout<<"Error! Compiler format must include %CODEPATH% (The path to the code) and %EXECPATH% (The path to the output executable)!"<<endl;
-                            }
-                        }
-                        if (masterBreak) break;
-                    }
-                    clc();
-                }
-            }
-        }
-        
-        if (compilerExists) break;
-        cout<<"Custom compilers are in development. Compiling is now disabled."<<endl;
-        break;
-        cout<<"Error! Compiler not found!"<<endl;
-        string compAnsr;
-        if (prefersCompiler) {
-            ll nxtFnd=-1;
-            for (ll i=0;i<compilers.size();i++) {
-                ifstream testIfGoodComp(compilers[i].pth);
-                if (testIfGoodComp.good()) {
-                    nxtFnd=i;
-                    break;
-                }
-            }
-            if (nxtFnd!=-1) {
-                testCompiler.close();
-                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist but the default "<<compilers[nxtFnd].pth<<" compiler does."<<endl<<"[1]Try again with my compiler"<<endl<<"[2]Use CodeAssign's default compiler"<<endl<<"[3]Set new custom compiler"<<endl<<"[4]Use CodeAssign without evaluation features"<<endl;
-                getline(cin,compAnsr);
-                if (compAnsr=="2") {
-                    prefersCompiler=0;
-                    preferredCompiler="";
-                } else if (compAnsr=="3") {
-                    clc();
-                    cout<<"Input the path to the custom compiler"<<endl;
-                    getline(cin,preferredCompiler);
-                    nml(preferredCompiler);
-                } else if (compAnsr=="4") {
-                    clc();
-                    break;
-                } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
-            } else {
-                testCompiler.close();
-                cout<<"Your custom compiler ("<<preferredCompiler<<") does not exist and CodeAssign cannot find it's default ";
-                if (compilers.size()>=3) {
-                    for (ll i=0;i<compilers.size()-1;i++) cout<<compilers[i].alias<<", ";
-                    cout<<"and"<<compilers[compilers.size()-1].alias;
-                } else if (compilers.size()==2) {
-                    cout<<compilers[0].alias<<" and "<<compilers[1].alias;
-                } else {
-                    cout<<compilers[0].alias;
-                }
-                cout<<" compiler either."<<endl<<"[1]Try again"<<endl<<"[2]Set a new custom compiler"<<endl<<"[3]Try to use default compiler";
-                if (compilers.size()>1) cout<<"s";
-                cout<<" and try again"<<endl<<"[4]Use CodeAssign without evaluation features"<<endl;
-                getline(cin,compAnsr);
-                if (compAnsr=="2") {
-                    clc();
-                    cout<<"Input the path to the custom compiler"<<endl;
-                    getline(cin,preferredCompiler);
-                    nml(preferredCompiler);
-                } else if (compAnsr=="3") {
-                    prefersCompiler=0;
-                    preferredCompiler="";
-                } else if (compAnsr=="4") {
-                    clc();
-                    break;
-                } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
-            }
-        } else {
-            if (compilerGotRemoved) {
-                cout<<"Your previous "<<preferredCompiler<<" compiler is removed by CodeAssign. ";
-                ll nxtFnd=-1;
-                for (ll i=0;i<compilers.size();i++) {
-                    ifstream testIfGoodComp(compilers[i].pth);
-                    if (testIfGoodComp.good()) {
-                        nxtFnd=i;
-                        break;
-                    }
-                }
-                if (nxtFnd==-1) cout<<"We couldn't find any other default compilers either."<<endl;
-                else cout<<" However, the "<<compilers[nxtFnd].alias<<" compiler does exist."<<endl;
-            } else {
-                //try other default compilers and if they do work, use them.
-                ll nxtFnd=-1;
-                for (ll i=0;i<compilers.size();i++) {
-                    ifstream testIfGoodComp(compilers[i].pth);
-                    if (testIfGoodComp.good()) {
-                        nxtFnd=i;
-                        break;
-                    }
-                }
-                if (nxtFnd==-1) {
-                    cout<<"CodeAssign's default ";
-                    if (SYS==APPL) cout<<"Xcode";
-                    else if (SYS==WIN) cout<<"Dev-C++";
-                    cout<<" compiler cannot be found."<<endl;
-                    if (SYS==APPL) cout<<"To install the Xcode Clang compiler, open Terminal and type in \"xcode-select --install\"."<<endl;
-                    else {
-                        cout<<"If you do have a compiler on the system, set it as a custom compiler and report it so CodeAssign can detect it in future versions!"<<endl;
-                    }
-                    cout<<"[1]Try again"<<endl<<"[2]Set a custom compiler"<<endl<<"[3]Use CodeAssign without evaluation features"<<endl;
-                    getline(cin,compAnsr);
-                    if (compAnsr=="2") {
-                        clc();
-                        cout<<"Input the path to the custom compiler"<<endl;
-                        getline(cin,preferredCompiler);
-                        nml(preferredCompiler);
-                        prefersCompiler=1;
-                    } else if (compAnsr=="3") {
-                        clc();
-                        break;;
-                    } else if (compAnsr!="1") cout<<"Invalid response."<<endl;
-                }
-            }
-        }
-        clc();
-        compilerVirgin=false;
-    }
+    
+    setupCompiler(newusrcompile,compilerExists,compilers,compilerVirgin);
+    
+    ll defaultCompilerID=-1;
+    
+    if (!prefersCompiler) for (ll i=0;i<compilers.size()&&defaultCompilerID==-1;i++) if (compilers[i].alias==preferredCompiler) defaultCompilerID=i;
+    
     bool canLaunch=true;
     for (ll i=0;i<db.size()&&canLaunch;i++) if (db[i]==' ') canLaunch=false;
     canLaunch=canLaunch||(SYS==APPL);
@@ -1435,11 +1484,23 @@ int main() {
                 cout<<"Autosave has been disabled."<<endl;
             } else cout<<endl;
         }
-        cout<<"Welcome to CodeAssign(v1.5) for C++ Programming Club."<<endl;
+        if (newUsr) {
+            cout<<"Welcome to CodeAssign! CodeAssign is a code evaluator, allowing you to do programming question and elevate your programming skills. Let's get started."<<endl;
+        } else {
+            cout<<"Welcome to CodeAssign(v1.5.1) for C++ Programming Club."<<endl;
+        }
         if (debugMd) cout<<"Alert! Debug mode enabled! Type \"debug\" to disable debug mode."<<endl;
-        cout<<"Please select an action."<<endl<<"[1]New assignment"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
-        if (rand()%5==0) cout<<"Tip:"<<tips[rand()%tips.size()]<<endl;
-        if (asmt.size()) cout<<"--------"<<endl;
+        if (newUsr) {
+            cout<<"Please select an action."<<endl<<"[1]New problem <- Open programming questions"<<endl<<"[2]Achievements <- Fun achievements for you to complete!"<<endl<<"[3]Settings <- Click in here to check out some extra options!"<<endl<<"[4]Quit"<<endl;
+        } else {
+            cout<<"Please select an action."<<endl<<"[1]New problem"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
+        }
+        newUsr=false;
+        if (rand()%4==0) cout<<"Tip:"<<tips[rand()%tips.size()]<<endl;
+        cout<<"--------"<<endl;
+        if (asmt.size()==0) {
+            cout<<"Why don't you go get some problems to do?"<<endl;
+        }
         sort(asmt.begin(),asmt.end(),cmp);
         bool containsNonK=false,containsK=false;
         for (ll i=0;i<asmt.size()&&(!containsNonK||!containsK);i++) {
@@ -1516,9 +1577,11 @@ int main() {
         string homeans;
         getline(cin,homeans);
         ll homeansNum=atoll(homeans.c_str());
-        clc();
+        if (homeans!="4") clc();
         if (homeans=="1") {
-            cout<<"Enter the path of the package."<<endl;
+            cout<<"Please drag the assignment file into this window.";
+            if (SYS==APPL) cout<<"(.hwfx,.hw,.hwpkg)"<<endl;
+            else if (SYS==WIN) cout<<"(.hwfx)"<<endl;
             string pkgpth;
             getline(cin,pkgpth);
             nml(pkgpth);
@@ -1671,52 +1734,80 @@ int main() {
         } else if (homeans=="3") {
             while (true) {
                 //TODO:Add compiler options
-                cout<<"Settings"<<endl<<"[1]Sort:";
-                if (srtmode==1) cout<<"Alphabetically, increasing"<<endl;
-                else if (srtmode==2) cout<<"Alphabetically, decreasing"<<endl;
-                else if (srtmode==3) cout<<"Scores, increasing"<<endl;
-                else if (srtmode==4) cout<<"Scores, decreasing"<<endl;
-                else if (srtmode==5) cout<<"Date, increasing"<<endl;
-                else if (srtmode==6) cout<<"Date, decreasing"<<endl;
-                else cout<<"Error"<<endl;
-                cout<<"[2]Keep assignments for:";
-                if (rten==1) cout<<"1 week"<<endl;
-                else if (rten==2) cout<<"2 weeks"<<endl;
-                else if (rten==3) cout<<"1 month"<<endl;
-                else if (rten==4) cout<<"2 months"<<endl;
-                else if (rten==5) cout<<"6 months"<<endl;
-                else if (rten==6) cout<<"Forever"<<endl;
-                else cout<<"Error"<<endl;
-                cout<<"[3]Multicore:";
-                if (mltcore>1) cout<<mltcore<<" cores"<<endl;
-                else if (mltcore) cout<<mltcore<<" core"<<endl;
-                else cout<<"Error"<<endl;
+                cout<<"Settings"<<endl<<endl<<"GENERAL"<<endl<<"--------"<<endl<<"[1]Sort:";
+                if (srtmode==1) cout<<"Alphabetically, increasing";
+                else if (srtmode==2) cout<<"Alphabetically, decreasing";
+                else if (srtmode==3) cout<<"Scores, increasing";
+                else if (srtmode==4) cout<<"Scores, decreasing";
+                else if (srtmode==5) cout<<"Date, increasing";
+                else if (srtmode==6) cout<<"Date, decreasing";
+                else cout<<"Error";
+                if (settingshelp) cout<<" <- Change how problems are sorted in the main menu";
+                cout<<endl;
+                cout<<"[2]Keep problems for:";
+                if (rten==1) cout<<"1 week";
+                else if (rten==2) cout<<"2 weeks";
+                else if (rten==3) cout<<"1 month";
+                else if (rten==4) cout<<"2 months";
+                else if (rten==5) cout<<"6 months";
+                else if (rten==6) cout<<"Forever";
+                else cout<<"Error";
+                if (settingshelp) cout<<" <- Delete problems after a set amount of time";
+                cout<<endl;
+                cout<<"[3]Threads:";
+                if (mltcore>1) cout<<mltcore<<" threads";
+                else if (mltcore) cout<<mltcore<<" thread";
+                else cout<<"Error";
+                if (settingshelp) cout<<" <- Try this to make CodeAssign submissions faster!";
+                cout<<endl;
                 cout<<"[4]Sound:";
                 if (sound) {
-                    if (selaud.size()==0) cout<<"No song selected"<<endl;
-                    else if (audio.size()==selaud.size()) cout<<"All"<<endl;
+                    if (selaud.size()==0) cout<<"No song selected";
+                    else if (audio.size()==selaud.size()) cout<<"All";
                     else {
                         cout<<audio[selaud[0]].sname;
                         if (selaud.size()==2) cout<<" and "<<selaud.size()-1<<" other...";
                         else if (selaud.size()>=2) cout<<" and "<<selaud.size()-1<<" others...";
-                        cout<<endl;
                     }
                 }
-                else cout<<"Disabled"<<endl;
+                else cout<<"Disabled";
+                if (settingshelp) cout<<" <- Play a song on successfully completing a question.";
+                cout<<endl;
                 cout<<"[5]Autosave:";
-                if (autosave) cout<<"Enabled"<<endl;
+                if (autosave) cout<<"Enabled";
                 else {
-                    if (asdisabled) cout<<"Disabled due to import issue"<<endl;
-                    else cout<<"Disabled"<<endl;
+                    if (asdisabled) cout<<"Disabled due to import issue";
+                    else cout<<"Disabled";
                 }
+                if (settingshelp) cout<<" <- Automatically saves new progress and changes. Disable this if there's lag when closing menus.";
+                cout<<endl;
                 cout<<"[6]Limit items on one page to:";
-                if (ovrflw) cout<<ovrflw<<" items"<<endl;
-                else cout<<"Infinite"<<endl;
+                if (ovrflw) cout<<ovrflw<<" items";
+                else cout<<"Infinite";
+                if (settingshelp) cout<<" <- Too many items on the main menu? Use this to split them into pages!";
+                cout<<endl;
+                cout<<endl;
+                if (settingshelp) cout<<"ADVANCED <- Don't touch these unless you know what you're doing";
+                else cout<<"ADVANCED";
+                cout<<endl<<"--------"<<endl;
                 cout<<"[7]Answer file:";
                 if (anslock) cout<<lockedf<<endl;
                 else cout<<"Disabled"<<endl;
-                cout<<"[8]Exit Settings"<<endl;
+                cout<<"[8]Compiler:";
+                if (!compilerExists) cout<<"None"<<endl;
+                else {
+                    if (prefersCompiler) {
+                        string rdcpkg=preferredCompiler;
+                        while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                        cout<<"Custom("<<rdcpkg<<")"<<endl;
+                    } else {
+                        cout<<"CodeAssign "<<preferredCompiler<<endl;
+                    }
+                }
+                cout<<"--------"<<endl;
+                cout<<endl<<"[9]Exit Settings"<<endl;
                 string setans;
+                settingshelp=0;
                 getline(cin,setans);
                 clc();
                 if (setans=="1") {
@@ -1726,11 +1817,13 @@ int main() {
                     if (atoll(srtans.c_str())>=1&&atoll(srtans.c_str())<=6) {
                         srtmode=atoll(srtans.c_str());
                     }
+                    clc();
                     if (autosave) savedata();
                 } else if (setans=="2") {
                     cout<<"About keep assignments:Assignments older than the set time will be automatically deleted."<<endl<<"Select your preferred time."<<endl<<"[1]1 week"<<endl<<"[2]2 weeks"<<endl<<"[3]1 month"<<endl<<"[4]2 months"<<endl<<"[5]6 months"<<endl<<"[6]Forever"<<endl;
                     string settmp;
                     getline(cin,settmp);
+                    clc();
                     if (to_string(atoll(settmp.c_str()))==settmp) {
                         ll timetmp = atoll(settmp.c_str());
                         if (timetmp>0&&timetmp<7) {
@@ -1745,11 +1838,11 @@ int main() {
                     }
                     if (autosave) savedata();
                 } else if (setans=="3") {
-                    cout<<"About multicore:Your processor may be capable of running multiple tasks at once. Using multicore settings will evaluate data using more cores. "<<endl<<"Input the amount of cores."<<endl;
+                    cout<<"About multithreaded evaluation:Your processor may be capable of running multiple tasks at once. Using multithreading settings will evaluate data using more threads. "<<endl<<"Input the amount of threads."<<endl;
                     if (SYS==APPL) {
                         if (compcore==0) cout<<"Suggestion is unavailble."<<endl;
-                        else if (compcore<=3) cout<<"Using one core is recommended."<<endl;
-                        else cout<<"Using "<<compcore-2<<" cores is recommended."<<endl;
+                        else if (compcore<=3) cout<<"Using one thread is recommended."<<endl;
+                        else cout<<"Using "<<compcore-2<<" threads is recommended."<<endl;
                     }
                     string settmp;
                     getline(cin,settmp);
@@ -1795,10 +1888,10 @@ int main() {
                                     }
                                 }
                                 mltcore=coretmp;
-                                if (mltcore==1) cout<<"Multicore successfully set to 1 core."<<endl;
-                                else cout<<"Multicore successfully set to "<<mltcore<<" cores."<<endl;
-                            } else cout<<"Error! It is not advised to use more than 10 cores."<<endl;
-                        } else cout<<"Error! A positive amount of cores must be used."<<endl;
+                                if (mltcore==1) cout<<"Multithreading successfully set to 1 thread."<<endl;
+                                else cout<<"Multithreading successfully set to "<<mltcore<<" threads."<<endl;
+                            } else cout<<"Error! It is not advised to use more than 10 threads."<<endl;
+                        } else cout<<"Error! A positive amount of threads must be used."<<endl;
                     }
                     if (autosave) savedata();
                 } else if (setans=="4") {
@@ -1856,7 +1949,7 @@ int main() {
                                             else if (schoice[songchoice[i]]!=0) fc[schoice[songchoice[i]]-1]=1;
                                             else if (songchoice[i]=='2') {
                                                 choosesounds=false;
-                                                cout<<"Alert! Song must be in WAV format."<<endl<<"Input the path of the song..."<<endl;
+                                                cout<<"Alert! Song must be in WAV format."<<endl<<"Please drag the song into this window."<<endl;
                                                 string newsoundpth;
                                                 getline(cin,newsoundpth);
                                                 nml(newsoundpth);
@@ -1956,6 +2049,7 @@ int main() {
                                 instest.close();
                             }
                         }
+                        clc();
                         if (autosave) savedata();
                     } else {
                         cout<<"The Windows version of CodeAssign does not support sound yet."<<endl;
@@ -1969,6 +2063,7 @@ int main() {
                             cout<<"Are you sure about enabling autosave? You may corrupt files. Input CONFIRM to confirm."<<endl;
                             string conf;
                             getline(cin,conf);
+                            clc();
                             if (conf=="CONFIRM") {
                                 cout<<"Autosave enabled."<<endl;
                                 autosave=true;
@@ -1997,8 +2092,9 @@ int main() {
                             cout<<"Invalid input!"<<endl;
                         }
                     }
+                    clc();
                 } else if (setans=="7") {
-                    cout<<"About answer file:Answer file sets a specific file for submissions."<<endl;
+                    cout<<"About answer file:Answer file sets a specific .cpp file for submissions."<<endl;
                     string anslockans;
                     if (anslock) {
                         while (true) {
@@ -2006,17 +2102,21 @@ int main() {
                             getline(cin,anslockans);
                             if (anslockans=="1") {
                                 anslock=0;
+                                clc();
                                 cout<<"Answer file disabled"<<endl;
                                 break;
                             } else if (anslockans=="2") {
-                                cout<<"Enter the path of the file"<<endl;
+                                cout<<"Drag the answer file into this window."<<endl;
                                 getline(cin,anslockans);
                                 nml(anslockans);
                                 if (anslockans.find("dwtReserved::")==string::npos) {
+                                    cout<<"Answer file set to "<<anslockans<<endl;
+                                    clc();
                                     lockedf=anslockans;
                                     break;
                                 } else cout<<"Filename cannot contain \"dwtReserved::\"!"<<endl;
                             } else if (anslockans=="3") {
+                                clc();
                                 break;
                             }
                         }
@@ -2025,7 +2125,7 @@ int main() {
                             cout<<"[1]Enable answer file"<<endl<<"[2]Exit"<<endl;
                             getline(cin,anslockans);
                             if (anslockans=="1") {
-                                cout<<"Enter the path of the file"<<endl;
+                                cout<<"Enter the path of the desired answer file."<<endl;
                                 getline(cin,anslockans);
                                 nml(anslockans);
                                 if (anslockans.find("dwtReserved::")==string::npos) {
@@ -2033,10 +2133,233 @@ int main() {
                                     anslock=1;
                                     break;
                                 } else cout<<"Filename cannot contain \"dwtReserved::\"!"<<endl;
-                            } else if (anslockans=="2") break;
+                            } else if (anslockans=="2") {
+                                clc();
+                                break;
+                            }
                         }
                     }
                 } else if (setans=="8") {
+                    if (!compilerExists) {
+                        while (true) {
+                            cout<<"Current compiler:None"<<endl<<"[1]Enable compiling"<<endl<<"[2]Exit"<<endl;
+                            string compileransa;
+                            getline(cin,compileransa);
+                            if (compileransa=="2") {
+                                clc();
+                                break;
+                            } else if (compileransa=="1") {
+                                clc();
+                                compilerVirgin=true;
+                                setupCompiler(newusrcompile,compilerExists,compilers,compilerVirgin);
+                                break;
+                            } else {
+                                clc();
+                                cout<<"Invalid response!"<<endl;
+                            }
+                        }
+                    } else {
+                        if (!prefersCompiler) {
+                            while (true) {
+                                cout<<"Current compiler:";
+                                if (prefersCompiler) {
+                                    string rdcpkg=preferredCompiler;
+                                    while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                                    cout<<"Custom("<<rdcpkg<<")"<<endl;
+                                } else {
+                                    cout<<"CodeAssign "<<preferredCompiler<<endl;
+                                }
+                                cout<<"It is not recommended to change these settings."<<endl<<"[1]Switch to a custom compiler"<<endl<<"[2]Exit"<<endl;
+                                string compilergeta;
+                                getline(cin,compilergeta);
+                                if (compilergeta=="1") {
+                                    clc();
+                                    while (true) {
+                                        cout<<"Drag the custom compiler into this window. Input exit to cancel."<<endl;
+                                        string cusCompPath;
+                                        getline(cin,cusCompPath);
+                                        nml(cusCompPath);
+                                        string compexit=cusCompPath;
+                                        transform(compexit.begin(),compexit.end(),compexit.begin(),::tolower);
+                                        if (compexit=="exit") break;
+                                        ifstream testThere(cusCompPath);
+                                        if (testThere.good()) {
+                                            clc();
+                                            prefersCompiler=true;
+                                            preferredCompiler=cusCompPath;
+                                            while (true) {
+                                                cout<<"Current compiler format:"<<compilerFormat<<endl<<"Is this correct?"<<endl<<"[1]Yes"<<endl<<"[2]No"<<endl;
+                                                string formatcor;
+                                                getline(cin,formatcor);
+                                                if (formatcor=="1") {
+                                                    clc();
+                                                    break;
+                                                } else if (formatcor=="2") {
+                                                    clc();
+                                                    bool masterBreak=false;
+                                                    while (true) {
+                                                        cout<<"Please input the new format. Input exit to cancel."<<endl;
+                                                        string tmpcompilerFormat;
+                                                        getline(cin,tmpcompilerFormat);
+                                                        string exitTry=tmpcompilerFormat;
+                                                        transform(exitTry.begin(),exitTry.end(),exitTry.begin(),::tolower);
+                                                        if (exitTry=="exit"){
+                                                            clc();
+                                                            masterBreak=true;
+                                                            break;
+                                                        }
+                                                        if (tmpcompilerFormat.find("%CODEPATH%")!=string::npos&&tmpcompilerFormat.find("%EXECPATH")!=string::npos) {
+                                                            compilerFormat=tmpcompilerFormat;
+                                                            clc();
+                                                            masterBreak=true;
+                                                            break;
+                                                        } else {
+                                                            clc();
+                                                            cout<<"Error! Compiler format must include %CODEPATH% (The path to the code) and %EXECPATH% (The path to the output executable)!"<<endl;
+                                                        }
+                                                    }
+                                                    if (masterBreak) break;
+                                                }
+                                                clc();
+                                            }
+                                            break;
+                                        } else {
+                                            clc();
+                                            cout<<"An error occured while finding the custom compiler."<<endl;
+                                        }
+                                    }
+                                    break;
+                                } else if (compilergeta=="2") {
+                                    clc();
+                                    break;
+                                }
+                            }
+                        } else {
+                            while (true) {
+                                cout<<"Current compiler:";
+                                if (prefersCompiler) {
+                                    string rdcpkg=preferredCompiler;
+                                    while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
+                                    cout<<"Custom("<<rdcpkg<<")"<<endl;
+                                } else {
+                                    cout<<"CodeAssign "<<preferredCompiler<<endl;
+                                }
+                                ifstream testIfCustom;
+                                ll goodpfcomp=-1;
+                                for (ll i=0;i<compilers.size();i++) {
+                                    testIfCustom.open(compilers[i].pth);
+                                    if (testIfCustom.good()) {
+                                        goodpfcomp=i;
+                                        testIfCustom.close();
+                                    }
+                                    testIfCustom.close();
+                                }
+                                if (goodpfcomp==-1) {
+                                    cout<<"No CodeAssign compiler can be found"<<endl;
+                                }
+                                cout<<"[1]Switch to another custom compiler"<<endl<<"[2]Change compiler format("<<compilerFormat<<")"<<endl;
+                                if (goodpfcomp!=-1) {
+                                    cout<<"[3]Switch to a CodeAssign compiler"<<endl<<"[4]Exit"<<endl;
+                                } else {
+                                    cout<<"[3]Exit"<<endl;
+                                }
+                                string compilerin;
+                                getline(cin,compilerin);
+                                if (compilerin=="1") {
+                                    while (true) {
+                                        clc();
+                                        cout<<"Drag the custom compiler into this window. Input exit to cancel."<<endl;
+                                        string cusCompPath;
+                                        getline(cin,cusCompPath);
+                                        nml(cusCompPath);
+                                        string compexit=cusCompPath;
+                                        transform(compexit.begin(),compexit.end(),compexit.begin(),::tolower);
+                                        if (compexit=="exit") break;
+                                        ifstream testThere(cusCompPath);
+                                        if (testThere.good()) {
+                                            clc();
+                                            prefersCompiler=true;
+                                            preferredCompiler=cusCompPath;
+                                            while (true) {
+                                                cout<<"Current compiler format:"<<compilerFormat<<endl<<"Is this correct?"<<endl<<"[1]Yes"<<endl<<"[2]No"<<endl;
+                                                string formatcor;
+                                                getline(cin,formatcor);
+                                                if (formatcor=="1") {
+                                                    clc();
+                                                    break;
+                                                } else if (formatcor=="2") {
+                                                    clc();
+                                                    bool masterBreak=false;
+                                                    while (true) {
+                                                        cout<<"Please input the new format. Input exit to cancel."<<endl;
+                                                        string tmpcompilerFormat;
+                                                        getline(cin,tmpcompilerFormat);
+                                                        string exitTry=tmpcompilerFormat;
+                                                        transform(exitTry.begin(),exitTry.end(),exitTry.begin(),::tolower);
+                                                        if (exitTry=="exit"){
+                                                            clc();
+                                                            masterBreak=true;
+                                                            break;
+                                                        }
+                                                        if (tmpcompilerFormat.find("%CODEPATH%")!=string::npos&&tmpcompilerFormat.find("%EXECPATH")!=string::npos) {
+                                                            compilerFormat=tmpcompilerFormat;
+                                                            clc();
+                                                            masterBreak=true;
+                                                            break;
+                                                        } else {
+                                                            clc();
+                                                            cout<<"Error! Compiler format must include %CODEPATH% (The path to the code) and %EXECPATH% (The path to the output executable)!"<<endl;
+                                                        }
+                                                    }
+                                                    if (masterBreak) break;
+                                                }
+                                                clc();
+                                            }
+                                        } else {
+                                            clc();
+                                            cout<<"An error occured while finding the custom compiler."<<endl;
+                                        }
+                                        break;
+                                    }
+                                } else if (compilerin=="2") {
+                                    clc();
+                                    while (true) {
+                                        cout<<"Please input the new format. Input exit to cancel."<<endl;
+                                        string tmpcompilerFormat;
+                                        getline(cin,tmpcompilerFormat);
+                                        string exitTry=tmpcompilerFormat;
+                                        transform(exitTry.begin(),exitTry.end(),exitTry.begin(),::tolower);
+                                        if (exitTry=="exit"){
+                                            clc();
+                                            break;
+                                        }
+                                        if (tmpcompilerFormat.find("%CODEPATH%")!=string::npos&&tmpcompilerFormat.find("%EXECPATH")!=string::npos) {
+                                            compilerFormat=tmpcompilerFormat;
+                                            clc();
+                                            break;
+                                        } else {
+                                            clc();
+                                            cout<<"Error! Compiler format must include %CODEPATH% (The path to the code) and %EXECPATH% (The path to the output executable)!"<<endl;
+                                        }
+                                    }
+                                    clc();
+                                } else if (goodpfcomp==-1&&compilerin=="3") {
+                                    clc();
+                                    break;
+                                } else if (goodpfcomp!=-1&&compilerin=="3") {
+                                    prefersCompiler=0;
+                                    preferredCompiler=compilers[goodpfcomp].alias;
+                                    clc();
+                                    break;
+                                } else if (goodpfcomp!=-1&&compilerin=="4") {
+                                    clc();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else if (setans=="9") {
+                    savedata();
                     clc();
                     break;
                 }
@@ -2103,6 +2426,7 @@ int main() {
                     break;
                 }
             }
+            if (hitach) savedata();
             if (!hitach) {
                 if (vtmp=="changelog") {
                     changelog();
@@ -2116,7 +2440,7 @@ int main() {
                     return 0;
                 } else if (vtmp=="crypt") {
                     if (SYS==APPL) {
-                        cout<<"Crypto helper"<<endl<<"Enter the path of the file."<<endl;
+                        cout<<"Crypto helper"<<endl<<"Please drag the file to process into this window."<<endl;
                         string cryf;
                         getline(cin,cryf);
                         nml(cryf);
@@ -2135,7 +2459,7 @@ int main() {
                 } else if (vtmp=="batchmake") {
                     #if CANUSEFS
                     //Batch make
-                    cout<<"Input directory to batch make from"<<endl;
+                    cout<<"Drag the directory to batch make from into this window."<<endl;
                     string dirBtch;
                     getline(cin,dirBtch);
                     auto c= chrono::high_resolution_clock::now();
@@ -2197,10 +2521,15 @@ int main() {
                     #else
                         cout<<"Error! Filesystem is unavailable!"<<endl;
                     #endif
+                } else if (vtmp=="hreset") {
+                    //delete all except for user homework files and .dwt (can only be done with fs)
+                    
+                    //reinstall all helpers
+                    install(0);
                 } else if (vtmp=="batchimport") {
                     #if CANUSEFS
                     //Batch import
-                    cout<<"Input directory to batch import from"<<endl;
+                    cout<<"Drag the directory to batch import from into this window."<<endl;
                     string dirBtch;
                     getline(cin,dirBtch);
                     auto c= chrono::high_resolution_clock::now();
@@ -2261,7 +2590,7 @@ int main() {
                         debugMd=1;
                     }
                 } else if (vtmp=="make") {
-                    cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Input your assignment's directory. Don't include a / at the end of your path."<<endl;
+                    cout<<"hwfX package maker. Example hierarchy:"<<endl<<"Add One"<<endl<<"  |- title.txt:Title"<<endl<<"  |- description.txt:Problem description"<<endl<<"  |- exin1.txt:Example input 1"<<endl<<"  |- exin2.txt:Example input 2"<<endl<<"  |- exout1.txt:Example output 1 to match up with exin1"<<endl<<"  |- exout2.txt:Example output 2"<<endl<<"  |- in.txt:Input requirements"<<endl<<"  |- out.txt:Output requirements"<<endl<<"  |- in1.txt:Testing input set #1"<<endl<<"  |- in2.txt:Testing input set #2"<<endl<<"  |- out1.txt:Testing output #1, matches up with in1.txt"<<endl<<"  |- out2.txt:Testing output #2"<<endl<<"  |-------"<<endl<<"You may include any amount of test sets. 10-20 is recommended."<<endl<<"You may also include any amount of example inputs. 1-3 is recommended."<<endl<<"Drag the assignment directory into this window."<<endl;
                     string pkgpth;
                     getline(cin,pkgpth);
                     nml(pkgpth);
@@ -2283,7 +2612,7 @@ int main() {
                                     string rdcpkg=pkgpth;
                                     while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
                                     rdcpkg+=".hwfx";
-                                    cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
+                                    cout<<"Please drag the directory for the file "<<rdcpkg<<" into this window."<<endl;
                                     getline(cin,outpth);
                                     nml(outpth);
                                     outpth=outpth+"/"+rdcpkg;
@@ -2298,7 +2627,7 @@ int main() {
                         } else {
                             ofstream outTst(outpth);
                             if (outTst.good()) break;
-                            else cout<<"Failed to write to "<<outpth<<". Do you want to "<<endl<<"[1]Change file path"<<endl<<"[2]Stop"<<endl;
+                            else cout<<"Failed to write to "<<outpth<<". Do you want to "<<endl<<"[1]Change output file"<<endl<<"[2]Stop"<<endl;
                             string badWrtRes;
                             getline(cin,badWrtRes);
                             while (true) {
@@ -2306,7 +2635,7 @@ int main() {
                                     string rdcpkg=pkgpth;
                                     while (rdcpkg.find("/")!=string::npos) rdcpkg=rdcpkg.substr(rdcpkg.find("/")+1);
                                     rdcpkg+=".hwfx";
-                                    cout<<"Please input the directory for the file "<<rdcpkg<<". (Do not include / at the end)"<<endl;
+                                    cout<<"Please drag the directory for the file "<<rdcpkg<<" into this window."<<endl;
                                     getline(cin,outpth);
                                     nml(outpth);
                                     outpth=outpth+"/"+rdcpkg;
@@ -2345,7 +2674,7 @@ int main() {
                         }
                         clc();
                         if (doItAgain=="1") {
-                            cout<<"Please input the assignment's directory. Don't include a / at the end of your path."<<endl;
+                            cout<<"Please drag the assignment directory into this window."<<endl;
                             getline(cin,pkgpth);
                             nml(pkgpth);
                         } else break;
@@ -2665,8 +2994,17 @@ int main() {
                 if (compilerExists&&canLaunch) {
                     cout<<"["<<cumsub++<<"]Submit"<<endl;
                     subm=cumsub-1;
+                } else {
+                    cout<<"Submissions are disabled (";
+                    if (!compilerExists&&!canLaunch) {
+                        cout<<"helper launch failed and compiler not set)"<<endl;
+                    } else if (!compilerExists) {
+                        cout<<"compiler not set)"<<endl;
+                    } else {
+                        cout<<"helper launch failed)"<<endl;
+                    }
                 }
-                if (anslock) {
+                if (anslock&&compilerExists&&canLaunch) {
                     string simplansf=lockedf;
                     while (simplansf.find("/")!=string::npos) simplansf=simplansf.substr(simplansf.find("/")+1);
                     cout<<"["<<cumsub++<<"]Use answer file ("<<simplansf<<")"<<endl;
@@ -2698,7 +3036,7 @@ int main() {
                             cdpth=lockedf;
                         } else {
                             clc();
-                            cout<<"Enter code path"<<endl;
+                            cout<<"Please drag the cpp file into this window."<<endl;
                             getline(cin,cdpth);
                         }
                         
@@ -2711,36 +3049,49 @@ int main() {
                             //MARK:Compile
                             string compilerArg="";
                             if (prefersCompiler) {
-                                compilerArg=preferredCompiler+" ";
+                                compilerArg=safespace(preferredCompiler);
                             } else {
-                                if (SYS==APPL) compilerArg="g++";
-                                else if (SYS==WIN) compilerArg=safespace("/Program Files (x86)/Dev-Cpp/MinGW64/bin/g++.exe");
+                                if (SYS==APPL) compilerArg=safespace(compilers[defaultCompilerID].pth);
+                                else if (SYS==WIN) compilerArg=safespace(compilers[defaultCompilerID].pth);
                             }
                             compilerArg+=" ";
-                            if (prefersCompiler||overrideDefaultFormat) {
-                                cout<<"INDEVELOPMENT!"<<endl;
-                                //TODO:Indev
+                            string codepth=db+"tmp/preppedcode.cpp";
+                            string execpth=db+"tmp/exe"+exePost;
+                            stringstream reldinnerpth;
+                            if (SYS==APPL) {
+                                for (ll i=0;i<codepth.size();i++) codepth[i]=='"'?reldinnerpth<<"\\"<<codepth[i]:reldinnerpth<<codepth[i];
+                                codepth=reldinnerpth.str();
+                                reldinnerpth.str("");
+                                for (ll i=0;i<execpth.size();i++) execpth[i]=='"'?reldinnerpth<<"\\"<<execpth[i]:reldinnerpth<<execpth[i];
+                                execpth=reldinnerpth.str();
+                                codepth="\""+safespace(codepth)+"\"";
+                                execpth="\""+safespace(execpth)+"\"";
+                            } else if (SYS==WIN) {
+                                codepth=safespace(codepth);
+                                execpth=safespace(execpth);
+                            }
+                            if (prefersCompiler) {
+                                string toAdd="";
+                                for (ll i=0;i<compilerFormat.size();i++) {
+                                    if (i<=compilerFormat.size()-10) {
+                                        if (compilerFormat.substr(i,10)=="%CODEPATH%") {
+                                            toAdd+=codepth;
+                                            i+=10-1;
+                                        } else if (compilerFormat.substr(i,10)=="%EXECPATH%") {
+                                            toAdd+=execpth;
+                                            i+=10-1;
+                                        } else toAdd+=compilerFormat[i];
+                                    } else toAdd+=compilerFormat[i];
+                                }
+                                compilerArg+=toAdd;
                             } else {
                                 //"%CODEPATH% -o %EXECPATH%"
-                                string innerpth=db+"tmp/preppedcode.cpp";
-                                stringstream reldinnerpth;
-                                if (SYS==APPL) {
-                                    for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
-                                    innerpth=reldinnerpth.str();
-                                    compilerArg+="\""+safespace(innerpth)+"\"";
-                                    compilerArg+=" -o ";
-                                    innerpth=db+"tmp/exe"+exePost;
-                                    reldinnerpth.str("");
-                                    for (ll i=0;i<innerpth.size();i++) innerpth[i]=='"'?reldinnerpth<<"\\"<<innerpth[i]:reldinnerpth<<innerpth[i];
-                                    innerpth=reldinnerpth.str();
-                                    compilerArg+="\""+safespace(innerpth)+"\"";
-                                } else if (SYS==WIN) {
-                                    compilerArg+=safespace(innerpth);
-                                    compilerArg+=" -o ";
-                                    innerpth=db+"tmp/exe"+exePost;
-                                    compilerArg+=safespace(innerpth);
-                                    compilerArg="\""+compilerArg+"\"";
-                                }
+                                compilerArg+=codepth;
+                                compilerArg+=" -o ";
+                                compilerArg+=execpth;
+                            }
+                            if (SYS==WIN) {
+                                compilerArg="\""+compilerArg+"\"";
                             }
                             ofstream gppbrd(db+"tmp/gppbrd.bridge");
                             gppbrd<<compilerArg;
