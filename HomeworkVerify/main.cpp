@@ -442,7 +442,7 @@ void nml(string &s) {
     }
 }
 void changelog() {
-    cout<<"What's changed in v1.5.1:"<<endl<<"CodeAssign is now 1 year old!"<<endl<<"Custom compilers"<<endl<<"Problem loading is now instant"<<endl<<"Minor improvements and bug fixes"<<endl;
+    cout<<"What's changed in v1.5.3:"<<endl<<"Bug fixes"<<endl;
 }
 //MARK:MAIN
 ll pkgImport(ifstream &rdpkg, string &newPkg, string impItm) {
@@ -752,11 +752,17 @@ bool readHwfx(string &pkgpth,bool &vq,string &target,ll &chosenID) {
     vector<string>reLd;
     readHwfxCore(reLd,pkgpth,vq);
     ll parsel=0;
+    ll times=0;
     while (true) {
+        times++;
+        if (times>=2) vq=false;
         if (parsel>=reLd.size()) break;
         ll parserr=reLd.size();
         for (ll i=parsel+1;i<reLd.size();i++) {
-            if (reLd[i]=="HwfxContents::Payload") parserr=i;
+            if (reLd[i]=="HwfxContents::Payload") {
+                parserr=i;
+                break;
+            }
         }
         string dtplyd;
         string nm="";
@@ -1113,7 +1119,7 @@ int main() {
     autosave=1;
     ovrflw=0;
     expfsvers=2;
-    expvers="1.5.1";
+    expvers="1.5.3";
     debugMd=0;
     compilerFormat="%CODEPATH% -o %EXECPATH%";
     preferredCompiler="";
@@ -1360,7 +1366,7 @@ int main() {
     in.close();
     if (vers!=expvers&&!newUsr) {
         if (vers<expvers) {
-            cout<<"Welcome to CodeAssign v1.5.1!"<<endl;
+            cout<<"Welcome to CodeAssign v1.5.3!"<<endl;
             changelog();
         }
     }
@@ -1505,7 +1511,7 @@ int main() {
         if (newUsr) {
             cout<<"Welcome to CodeAssign! CodeAssign is a code evaluator, allowing you to do programming question and elevate your programming skills. Let's get started."<<endl;
         } else {
-            cout<<"Welcome to CodeAssign(v1.5.1) for C++ Programming Club."<<endl;
+            cout<<"Welcome to CodeAssign(v1.5.3) for C++ Programming Club."<<endl;
         }
         if (debugMd) cout<<"Alert! Debug mode enabled! Type \"debug\" to disable debug mode."<<endl;
         if (newUsr) {
@@ -2844,10 +2850,16 @@ int main() {
                 if (rbndex!=exCnt.size()) cout<<"Missing examples! "<<exCnt.size()<<" examples found, "<<rbndex<<" examples expected."<<endl;
                 for (ll i=1;i<=rbndex;i++) {
                     vector<string>exTmp;
-                    for (ll j=exCnt[i].ipos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) exTmp.push_back(reLd[j]);
+                    for (ll j=exCnt[i].ipos+1;j<reLd.size();j++) {
+                        if (reLd[j].find("HwfxContents::")!=string::npos) break;
+                        exTmp.push_back(reLd[j]);
+                    }
                     inex.push_back(exTmp);
                     exTmp.clear();
-                    for (ll j=exCnt[i].opos+1;reLd[j].find("HwfxContents::")==string::npos&&j<reLd.size();j++) exTmp.push_back(reLd[j]);
+                    for (ll j=exCnt[i].opos+1;j<reLd.size();j++) {
+                        if (reLd[j].find("HwfxContents::")!=string::npos) break;
+                        exTmp.push_back(reLd[j]);
+                    }
                     outex.push_back(exTmp);
                 }
                 
@@ -3142,6 +3154,7 @@ int main() {
                             testcomp.close();
                             if (compile) {
                                 if (useCache) {
+                                    useCache=false;
                                     string pkgpth=db+target;
                                     vector<string>reLd;
                                     bool vqDummy=0;
@@ -3470,6 +3483,11 @@ int main() {
                         asmt.erase(asmt.begin()+chosenID);
                         remove((db+target).c_str());
                         if (sccode) remove((db+target+".cpp").c_str());
+                        ifstream testCache(db+"cache"+target);
+                        if (testCache.good()) {
+                            testCache.close();
+                            remove((db+"cache"+target).c_str());
+                        }
                         clc();
                         break;
                     } else if (hwsubans==to_string(subscclc)&&sccode) {
