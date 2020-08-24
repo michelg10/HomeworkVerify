@@ -1173,7 +1173,7 @@ int main() {
         }
         if (debugMd) cout<<"Alert! Debug mode enabled! Type \"debug\" to disable debug mode."<<endl;
         if (newUsr) {
-            cout<<"Please select an action."<<endl<<"[1]New problem <- Open programming questions"<<endl<<"[2]Achievements <- Fun achievements for you to complete!"<<endl<<"[3]Settings <- Click in here to check out some extra options!"<<endl<<"[4]Quit"<<endl;
+            cout<<"Please select an action."<<endl<<"[1]New problem <- Open programming questions"<<endl<<"[2]Achievements <- Fun achievements for you to complete!"<<endl<<"[3]Settings <- Go in here to check out some extra options!"<<endl<<"[4]Quit"<<endl;
         } else {
             cout<<"Please select an action."<<endl<<"[1]New problem"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         }
@@ -1368,7 +1368,7 @@ int main() {
                     if (asdisabled) cout<<"Disabled due to import issue";
                     else cout<<"Disabled";
                 }
-                if (settingshelp) cout<<" <- Automatically saves new progress and changes. Disable this if there's lag when closing menus.";
+                if (settingshelp) cout<<" <- Automatically save new progress and changes.";
                 cout<<endl;
                 cout<<"[6]Limit items on one page to:";
                 if (ovrflw) cout<<ovrflw<<" items";
