@@ -44,6 +44,7 @@ bool writeCore(string &fname,string &dtplyd, unsigned char * const aesKey,vector
         delete[] newMsg;
         for (ll i=0;i<mltCorem;i++) delete[] iv[i];
     } else {
+        delete[] newMsg;
         errorlog.push_back("ERR_OPEN_WRITECORE ("+fname+")");
         return 1;
     }
@@ -118,7 +119,11 @@ bool readHwfxCore(vector<string>&reLd,string pkgpth,bool &vq, bool debugMd,unsig
     if (ivCntPlc.begin()->first==0&&(--ivCntPlc.end())->first==ivCntPlc.size()-1) {
         for (ll i=0;i<ivCntPlc.size();i++) {
             ll startMkr=ivCntPlc[i]+1;
-            unsigned char *tmpIv=new unsigned char[16];
+            unsigned char *tmpIv=new(nothrow) unsigned char[16];
+            if (!tmpIv) {
+                errorlog.push_back("Memalloc error for length 16");
+                return 1;
+            }
             for (ll j=startMkr;j<startMkr+16;j++) {
                 if (j<fHeader.size()) {
                     if (atoll(fHeader[j].c_str())>=256||atoll(fHeader[j].c_str())<0) {
@@ -150,6 +155,7 @@ bool readHwfxCore(vector<string>&reLd,string pkgpth,bool &vq, bool debugMd,unsig
         for (ll i=0;i<iv.size();i++){
             delete[] iv[i];
         }
+        delete[] decPkg;
         return 0;
     }
     if (debugMd) {

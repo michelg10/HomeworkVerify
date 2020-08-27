@@ -1173,7 +1173,7 @@ int main() {
         }
         if (debugMd) cout<<"Alert! Debug mode enabled! Type \"debug\" to disable debug mode."<<endl;
         if (newUsr) {
-            cout<<"Please select an action."<<endl<<"[1]New problem <- Open programming questions"<<endl<<"[2]Achievements <- Fun achievements for you to complete!"<<endl<<"[3]Settings <- Go in here to check out some extra options!"<<endl<<"[4]Quit"<<endl;
+            cout<<"Please select an action."<<endl<<"[1]New problem <- Open programming questions"<<endl<<"[2]Achievements <- Fun achievements for you to complete!"<<endl<<"[3]Settings <- Click in here to check out some extra options!"<<endl<<"[4]Quit"<<endl;
         } else {
             cout<<"Please select an action."<<endl<<"[1]New problem"<<endl<<"[2]Achievements"<<endl<<"[3]Settings"<<endl<<"[4]Quit"<<endl;
         }
@@ -1368,29 +1368,29 @@ int main() {
                     if (asdisabled) cout<<"Disabled due to import issue";
                     else cout<<"Disabled";
                 }
-                if (settingshelp) cout<<" <- Automatically save new progress and changes.";
+                if (settingshelp) cout<<" <- Automatically saves new progress and changes. Disable this if there's lag when closing menus.";
                 cout<<endl;
                 cout<<"[6]Limit items on one page to:";
                 if (ovrflw) cout<<ovrflw<<" items";
                 else cout<<"Infinite";
                 if (settingshelp) cout<<" <- Too many items on the main menu? Use this to split them into pages!";
                 cout<<endl;
-                cout<<"[7]Language:";
-                if (evalLang==0) cout<<"C++";
-                else if (evalLang==1) cout<<"Python";
-                else if (evalLang==2) cout<<"Java";
-                else cout<<"Error";
-                if (settingshelp) cout<<" <- Change your CodeAssign language";
-                cout<<endl;
+//                cout<<"[7]Language:";
+//                if (evalLang==0) cout<<"C++";
+//                else if (evalLang==1) cout<<"Python";
+//                else if (evalLang==2) cout<<"Java";
+//                else cout<<"Error";
+//                if (settingshelp) cout<<" <- Change your CodeAssign language";
+//                cout<<endl;
                 
                 cout<<endl;
                 if (settingshelp) cout<<"ADVANCED <- Don't touch these unless you know what you're doing";
                 else cout<<"ADVANCED";
                 cout<<endl<<"--------"<<endl;
-                cout<<"[8]Answer file:";
+                cout<<"[7]Answer file:";
                 if (anslock) cout<<lockedf<<endl;
                 else cout<<"Disabled"<<endl;
-                cout<<"[9]Compiler:";
+                cout<<"[8]Compiler:";
                 if (!compilerExists) cout<<"None"<<endl;
                 else {
                     if (prefersCompiler) {
@@ -1401,12 +1401,12 @@ int main() {
                         cout<<"CodeAssign "<<preferredCompiler<<endl;
                     }
                 }
-                cout<<"[10]Unicode Make:";
+                cout<<"[9]Unicode Make:";
                 if (unicodehandl==0) cout<<"Replace and warn"<<endl;
                 else if (unicodehandl==1) cout<<"Ignore"<<endl;
                 else cout<<"Replace"<<endl;
                 cout<<"--------"<<endl;
-                cout<<endl<<"[11]Exit Settings"<<endl;
+                cout<<endl<<"[10]Exit Settings"<<endl;
                 string setans;
                 settingshelp=0;
                 getline(cin,setans);
@@ -1692,16 +1692,16 @@ int main() {
                         }
                     }
                     clc();
+                } else if (setans=="dev") {
+//                    if (true) {
+//                        cout<<"In development!"<<endl;
+//                    } else {
+//                        cout<<"Select language:"<<endl;
+//                        cout<<"[1]C++";
+//                        if (!compilerExists) cout<<" Compiler not found";
+//                        cout<<endl;
+//                    }
                 } else if (setans=="7") {
-                    if (true) {
-                        cout<<"In development!"<<endl;
-                    } else {
-                        cout<<"Select language:"<<endl;
-                        cout<<"[1]C++";
-                        if (!compilerExists) cout<<" Compiler not found";
-                        cout<<endl;
-                    }
-                } else if (setans=="8") {
                     cout<<"About answer file:Answer file sets a specific .cpp file for submissions."<<endl;
                     string anslockans;
                     if (anslock) {
@@ -1747,7 +1747,7 @@ int main() {
                             }
                         }
                     }
-                } else if (setans=="9") {
+                } else if (setans=="8") {
                     if (!compilerExists) {
                         while (true) {
                             cout<<"Current compiler:None"<<endl<<"[1]Enable compiling"<<endl<<"[2]Exit"<<endl;
@@ -1968,7 +1968,7 @@ int main() {
                             }
                         }
                     }
-                } else if (setans=="10") {
+                } else if (setans=="9") {
                     clc();
                     cout<<"Select the method of Unicode handling"<<endl;
                     cout<<"[1]Replace and warn";
@@ -1979,7 +1979,7 @@ int main() {
                     cout<<": Replaces all known Unicode values. Leaves non identified values as is."<<endl;
                     cout<<"[3]Ignore";
                     if (unicodehandl==1) cout<<" (Selected)";
-                } else if (setans=="11") {
+                } else if (setans=="10") {
                     if (autosave) savedata();
                     clc();
                     break;
@@ -2368,7 +2368,37 @@ int main() {
                             vq=true;
                         }
                     }
-                    if (!vq) cout<<"Invalid response."<<endl;
+                    if (!vq) {
+                        string pkgpth=vtmp;
+                        nml(pkgpth);
+                        if (pkgpth.length()>5) {
+                            if (pkgpth.substr(pkgpth.size()-5,5)==".hwfx") {
+                                ifstream pkgverf(pkgpth);
+                                if (pkgverf.good()) {
+                                    pkgverf.close();
+                                    grp=0;
+                                    if (pkgpth.size()>=5) {
+                                        if (pkgpth.substr(pkgpth.size()-5,5)!=".hwfx") {
+                                            cout<<"Unidentified file. Do not tamper with file extensions!"<<endl;
+                                        }
+                                    } else cout<<"Unidentified file. Do not tamper with file extensions!"<<endl;
+                                    if (!readHwfx(pkgpth,vq,target,chosenID,debugMd,aesKey,randname,db,asmt,errorlog)) cout<<"Error importing file!"<<endl;
+                                    if (errorlog.size()) {
+                                        cout<<"File corrupted. Logged errors during file import:"<<endl;
+                                        for (ll i=0;i<errorlog.size();i++) cout<<errorlog[i]<<endl;
+                                        vq=false;
+                                        enterToCont();
+                                        errorlog.clear();
+                                        clc();
+                                    }
+                                    if (autosave) savedata();
+                                }
+                            }
+                        }
+                    }
+                    if (!vq) {
+                        cout<<"Invalid response."<<endl;
+                    }
                 }
             }
         }
@@ -2610,20 +2640,34 @@ int main() {
                 string hwsubans;
                 getline(cin,hwsubans);
                 if (hwsubans!="-1") {
-                    if (hwsubans==to_string(subm)||(anslock&&hwsubans==to_string(ansfclc))) {
+                    bool iscpf=false;
+                    string tryd=hwsubans;
+                    nml(tryd);
+                    if (tryd.size()>4) {
+                        if (tryd.substr(tryd.size()-4,4)==".cpp") {
+                            ifstream makesure(tryd);
+                            if (makesure.good()) {
+                                iscpf=true;
+                                makesure.close();
+                            }
+                        }
+                    }
+                    if (hwsubans==to_string(subm)||(anslock&&hwsubans==to_string(ansfclc))||(iscpf&&subm!=-1)) {
                         ofstream silence(db+"tmp/sl.silence");
                         if (!silence.good()) cout<<"Critical error! Error accessing TMP"<<endl;
                         silence<<"Silent!";
                         silence.close();
                         removeWithinFolder(db+"tmp/");
                         string cdpth;
-                        if (hwsubans==to_string(ansfclc)) {
-                            cdpth=lockedf;
-                        } else {
-                            clc();
-                            cout<<"Please drag the cpp file into this window."<<endl;
-                            getline(cin,cdpth);
-                        }
+                        if (!iscpf) {
+                            if (hwsubans==to_string(ansfclc)) {
+                                cdpth=lockedf;
+                            } else {
+                                clc();
+                                cout<<"Please drag the cpp file into this window."<<endl;
+                                getline(cin,cdpth);
+                            }
+                        } else cdpth=hwsubans;
                         
                         nml(cdpth);
                         ifstream codeverf(cdpth);
