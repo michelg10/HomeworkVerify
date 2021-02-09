@@ -38,6 +38,7 @@
 		F0447B74224A5D1900B57D98 /* HomeworkVerify */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HomeworkVerify; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0447B77224A5D1900B57D98 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		F0A7CCB123117E59007AB3DE /* libirrklang.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libirrklang.dylib; sourceTree = "<group>"; };
+		F0C44AB225D2308D00920FC0 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		F0C801F924F365EC00992B27 /* aes_lookup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = aes_lookup.h; sourceTree = "<group>"; };
 		F0C801FA24F365EC00992B27 /* common_func.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = common_func.h; sourceTree = "<group>"; };
 		F0C801FB24F365EC00992B27 /* hwfx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hwfx.h; sourceTree = "<group>"; };
@@ -83,6 +84,7 @@
 		F0447B6B224A5D1900B57D98 = {
 			isa = PBXGroup;
 			children = (
+				F0C44AB225D2308D00920FC0 /* LICENSE */,
 				F0447B76224A5D1900B57D98 /* HomeworkVerify */,
 				F0447B75224A5D1900B57D98 /* Products */,
 				F0A7CCB023117E59007AB3DE /* Frameworks */,

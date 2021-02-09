@@ -75,12 +75,9 @@ void stopProcess(string processName) {
 }
 void launchNewProcess(string s,int OS=SYS) {
     if (OS==APPL) {
-        system(("open "+safespace(s)).c_str());
+        system(("open -a Terminal "+safespace(s)).c_str());
     } else if (OS==WIN) {
-        for (ll i=0;i<s.size();i++) {
-            if (s[i]=='/') s[i]='\\';
-        }
-        system(("start "+s).c_str());
+        system(("start \"\" "+safespace(s)).c_str());
     }
 }
 void clc(int OS=SYS) {
@@ -160,8 +157,8 @@ void install(bool comple) {
         makeDir(db+"tmp2/");
         ofstream disExist(db+"tmp2/exists");
     }
-    //MAC:Install gpphelper(105040),openhelper(203792),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
-    //WIN:Install openhelper(1957744),gpphelper(1928070),hkill(1926234)
+    //MAC:Install gpphelper(106048),openhelper(203792),handclap(1818048),highonlife(1160862),acsound(94848),hkill(50864),libirrklang.dylib(1975552),soundsetup(114720),convtool(109344)
+    //WIN:Install openhelper(1957744),gpphelper(1936998),hkill(1926234)
     string pstfx="";
     if (SYS==WIN) pstfx=".exe";
     ofstream installer;
@@ -173,8 +170,8 @@ void install(bool comple) {
 #elif SYS==WIN
     tmp=gpphelperw();
 #endif
-    if (SYS==APPL) for (ll i=0;i<105040;i++) installer<<tmp[i];
-    else if (SYS==WIN) for (ll i=0;i<1928070;i++) installer<<tmp[i];
+    if (SYS==APPL) for (ll i=0;i<138528;i++) installer<<tmp[i];
+    else if (SYS==WIN) for (ll i=0;i<1936998;i++) installer<<tmp[i];
     installer.close();
     makeExe(db+"gpphelper"+pstfx);
     
@@ -780,7 +777,7 @@ int main() {
     strcont["VERS"]=&vers;
     strcont["PREFERREDCOMPILER"]=&preferredCompiler;
     strcont["COMPILERFORMAT"]=&compilerFormat;
-    ll const helpertar=5;
+    ll const helpertar=6;
     unicodehandl=0;
     rten=6;
     mltcore=1;
@@ -790,7 +787,7 @@ int main() {
     autosave=1;
     ovrflw=0;
     expfsvers=2;
-    expvers="1.5.5";
+    expvers="1.5.7";
     debugMd=0;
     compilerFormat="%CODEPATH% -o %EXECPATH%";
     preferredCompiler="";
@@ -1114,9 +1111,9 @@ int main() {
     if (!prefersCompiler) for (ll i=0;i<compilers.size()&&defaultCompilerID==-1;i++) if (compilers[i].alias==preferredCompiler) defaultCompilerID=i;
     
     bool canLaunch=true;
-    for (ll i=0;i<db.size()&&canLaunch;i++) if (db[i]==' ') canLaunch=false;
-    canLaunch=canLaunch||(SYS==APPL);
-    if (!canLaunch) cout<<"Critical error! CodeAssign cannot launch helpers. This is due to a limitation in Windows. Make sure there is no space in your data path!"<<endl;
+//    for (ll i=0;i<db.size()&&canLaunch;i++) if (db[i]==' ') canLaunch=false;
+//    canLaunch=canLaunch||(SYS==APPL);
+//    if (!canLaunch) cout<<"Critical error! CodeAssign cannot launch helpers. This is due to a limitation in Windows. Make sure there is no space in your data path!"<<endl;
     //launch helpers
     if (compilerExists&&canLaunch) {
         cout<<"Launching helpers..."<<endl;
@@ -1169,7 +1166,7 @@ int main() {
         if (newUsr) {
             cout<<"Welcome to CodeAssign! CodeAssign is a code evaluator, allowing you to do programming questions and elevate your programming skills. Let's get started."<<endl;
         } else {
-            cout<<"Welcome to CodeAssign Phoenix (1.5.5)"<<endl;
+            cout<<"Welcome to CodeAssign Phoenix (1.5.7)"<<endl;
         }
         if (debugMd) cout<<"Alert! Debug mode enabled! Type \"debug\" to disable debug mode."<<endl;
         if (newUsr) {
@@ -1192,7 +1189,7 @@ int main() {
             showMore.clear();
             vector<strWithInt>curGroupContents;
             ll curGrpCnt=0;
-            if (containsNonK) {
+             if (containsNonK) {
                 curGroupContents.push_back((strWithInt){"Incomplete Problems:",-1});
                 for (ll i=0;i<asmt.size();i++) {
                     if (asmt[i].score<100) {
@@ -2368,6 +2365,7 @@ int main() {
                             vq=true;
                         }
                     }
+                    bool proc=false;
                     if (!vq) {
                         string pkgpth=vtmp;
                         nml(pkgpth);
@@ -2383,6 +2381,7 @@ int main() {
                                         }
                                     } else cout<<"Unidentified file. Do not tamper with file extensions!"<<endl;
                                     if (!readHwfx(pkgpth,vq,target,chosenID,debugMd,aesKey,randname,db,asmt,errorlog)) cout<<"Error importing file!"<<endl;
+                                    proc=true;
                                     if (errorlog.size()) {
                                         cout<<"File corrupted. Logged errors during file import:"<<endl;
                                         for (ll i=0;i<errorlog.size();i++) cout<<errorlog[i]<<endl;
@@ -2396,7 +2395,7 @@ int main() {
                             }
                         }
                     }
-                    if (!vq) {
+                    if (!vq&&!proc) {
                         cout<<"Invalid response."<<endl;
                     }
                 }
@@ -2577,7 +2576,7 @@ int main() {
                 continue;
             }
             while (true) {
-                cout<<endl<<probname<<endl<<"Your current score:"<<asmt[chosenID].score<<endl<<"--------"<<endl<<"Problem description:"<<endl;
+                cout<<endl<<probname<<endl<<"Your current score:"<<asmt[chosenID].score<<endl<<"--------"<<endl;
                 for (ll i=0;i<probdes.size();i++) {
                     cout<<probdes[i]<<endl;
                 }
@@ -2986,6 +2985,7 @@ int main() {
                                 ll correct=0;
                                 clc();
                                 cout<<"Test results:"<<endl;
+                                //ofstream debg("hi.txt");
                                 for (ll i=1;i<=indata.size();i++) {
                                     if (timeres[i-1]>1000) {
                                         cout<<"#"<<i<<"-TE"<<endl;
@@ -3002,17 +3002,41 @@ int main() {
                                             }
                                             if (outcomp[outcomp.size()-1]=="") outcomp.erase(outcomp.begin()+outcomp.size()-1);
                                             for (ll j=0;j<outcomp.size();j++) {
+                                                if (outcomp[j][outcomp[j].size()-1]=='\r') {
+                                                    outcomp[j].erase(outcomp[j].begin()+outcomp[j].size()-1);
+                                                }
                                                 if (outcomp[j][outcomp[j].size()-1]==' ') {
                                                     outcomp[j].erase(outcomp[j].begin()+outcomp[j].size()-1);
                                                 }
                                             }
                                             if (outdata[i-1][outdata[i-1].size()-1]=="") outdata[i-1].erase(outdata[i-1].begin()+outdata[i-1].size()-1);
                                             for (ll j=0;j<outdata[i-1].size();j++) {
+                                                if (outdata[i-1][j][outdata[i-1][j].size()-1]=='\r') {
+                                                    outdata[i-1][j].erase(outdata[i-1][j].begin()+outdata[i-1][j].size()-1);
+                                                }
                                                 if (outdata[i-1][j][outdata[i-1][j].size()-1]==' ') {
                                                     outdata[i-1][j].erase(outdata[i-1][j].begin()+outdata[i-1][j].size()-1);
                                                 }
                                             }
                                             bool ac = true;
+                                            /*
+                                             //debug stuf
+                                            debg<<endl<<endl<<"Stuf "<<i<<endl;
+                                            debg<<"Start CADATA"<<endl;
+                                            for (ll j=0;j<outdata[i-1].size();j++) {
+                                                for (ll k=0;k<outdata[i-1][j].size();k++) {
+                                                    debg<<(int)outdata[i-1][j][k]<<' ';
+                                                }
+                                                debg<<endl;
+                                            }
+                                            debg<<"Start USERDATA"<<endl;
+                                            for (ll j=0;j<outcomp.size();j++) {
+                                                for (ll k=0;k<outcomp[j].size();k++) {
+                                                    debg<<(int)outcomp[j][k]<<' ';
+                                                }
+                                                debg<<endl;
+                                            }
+                                             */
                                             if (outdata[i-1].size()==outcomp.size()) {
                                                 for (ll j=0;j<outdata[i-1].size();j++) {
                                                     if (outdata[i-1][j].size()==outcomp[j].size()) {
@@ -3031,6 +3055,7 @@ int main() {
                                         } else cout<<"-RTE"<<endl;
                                     }
                                 }
+//                                debg.close();
                                 removeWithinFolder(db+"tmp/");
                                 ll score = round(((ld)correct/indata.size())*100.0);
                                 if (asmt[chosenID].score>score) cout<<"Your submission score:"<<score<<endl;
@@ -3060,6 +3085,7 @@ int main() {
                                 cout<<"Press return to continue...";
                                 cin.get();
                                 if (SYS==APPL) stopProcess("acsound"+exePost);
+                                clc();
                             } else {
                                 cout<<"Compilation error."<<endl;
                             }
@@ -3083,6 +3109,7 @@ int main() {
                         clc();
                         break;
                     } else {
+                        clc();
                         cout<<"Invalid response."<<endl;
                     }
                 } else cout<<"Invalid response."<<endl;
